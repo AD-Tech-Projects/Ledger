@@ -3,7 +3,7 @@ module github.com/AD-Tech-Projects/Ledger
 go 1.25.7
 
 // ANCHOR - direct dependencies
-require github.com/AD-Tech-Projects/Go-Libs v0.0.1
+require github.com/AD-Tech-Projects/Go-Libs v0.0.3
 
 // require (
 // 	adtech.com/concurrency v0.0.0-unpublished
