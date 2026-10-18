@@ -1,0 +1,40 @@
+# Docker Compose Version
+version: "3.7"
+
+# Containers
+services:
+  # Relational DataBase
+  database:
+    container_name: DataBase_PostgreSQL
+    image: postgres:latest
+    user: root
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - 5432:5432
+    networks:
+      - default_network
+    volumes:
+      - db_volume:/var/lib/postgresql/
+
+  # Cache
+  cache:
+    container_name: Cache_Redis
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - default_network
+
+# Networks for Containers
+networks:
+  default_network:
+    driver: bridge
+
+# Volumes for Containers
+volumes:
+  db_volume:
+    name: db_volume
+    driver: local
