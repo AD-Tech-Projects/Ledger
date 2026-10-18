@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"fmt"
+
 	account "github.com/AD-Tech-Projects/Ledger/packages/domain/account"
 )
 
@@ -35,5 +37,5 @@ func validateTransaction(
 }
 
 func (e *TransactionError) Error() string {
-	return "{" + string(e.operation) + "}: " + e.message
+	return fmt.Errorf("{%s}: %s", e.operation, e.message).Error()
 }
