@@ -40,38 +40,46 @@ func (a *Account) GetFreeBalance() int64 {
 	return a.freeBalance
 }
 
-func (a *Account) IncreaseFreeBalance(amount int64) error {
-	validateAmount(amount)
+func (a *Account) IncreaseFreeBalance(amount int64) {
+	err := validateAmount(amount)
+	if err != nil {
+		panic(err)
+	}
 
 	a.freeBalance += amount
-
-	return nil
 }
 
-func (a *Account) MoveFreeBalanceToHold(amount int64) error {
-	a.validateFreeBalance(amount)
+func (a *Account) MoveFreeBalanceToHold(amount int64) {
+	err := a.validateFreeBalance(amount)
+	if err != nil {
+		panic(err)
+	}
 
 	a.freeBalance -= amount
 	a.holdBalance += amount
-
-	return nil
 }
 
-func (a *Account) DecreaseHoldBalance(amount int64) error {
-	a.validateHoldBalance(amount)
+func (a *Account) IncreaseHoldBalance(amount int64) {
+	a.holdBalance += amount
+}
+
+func (a *Account) DecreaseHoldBalance(amount int64) {
+	err := a.validateHoldBalance(amount)
+	if err != nil {
+		panic(err)
+	}
 
 	a.holdBalance -= amount
-
-	return nil
 }
 
-func (a *Account) MoveHoldBalanceToFree(amount int64) error {
-	a.validateHoldBalance(amount)
+func (a *Account) MoveHoldBalanceToFree(amount int64) {
+	err := a.validateHoldBalance(amount)
+	if err != nil {
+		panic(err)
+	}
 
 	a.holdBalance -= amount
 	a.freeBalance += amount
-
-	return nil
 }
 
 func (e *AccountError) Error() string {

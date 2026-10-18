@@ -7,7 +7,6 @@ import (
 func MakeTransaction(
 	id string,
 	amount int64,
-	status TransactionStatus,
 	transactionType TransactionType,
 	sourceAccount *account.Account,
 	destinationAccount *account.Account,
@@ -20,16 +19,37 @@ func MakeTransaction(
 		panic(err)
 	}
 
-	sourceAccount.MoveFreeBalanceToHold(amount)
-	destinationAccount.IncreaseFreeBalance(amount)
-	sourceAccount.DecreaseHoldBalance(amount)
+	switch transactionType {
+	case DEPOSIT:
+		sourceAccount.MoveFreeBalanceToHold(amount)
+	case WITHDRAWAL:
+		destinationAccount.MoveFreeBalanceToHold(amount)
+	}
 
 	return Transaction{
-		id:                   id,
-		amount:               amount,
-		status:               status,
-		transactionType:      transactionType,
-		sourceAccountId:      sourceAccount.GetId(),
-		destinationAccountId: destinationAccount.GetId(),
+		id:                 id,
+		amount:             amount,
+		status:             PENDING,
+		transactionType:    transactionType,
+		sourceAccount:      sourceAccount,
+		destinationAccount: destinationAccount,
 	}
+}
+
+func (t *Transaction) Commit() {
+	transactionStatus := FAILED
+
+	switch t.transactionType {
+	case DEPOSIT:
+		t.destinationAccount.IncreaseHoldBalance(t.amount)
+		t.sourceAccount.DecreaseHoldBalance(t.amount)
+		t.destinationAccount.MoveHoldBalanceToFree(t.amount)
+	case WITHDRAWAL:
+		t.sourceAccount.IncreaseHoldBalance(t.amount)
+		t.destinationAccount.DecreaseHoldBalance(t.amount)
+		t.sourceAccount.MoveHoldBalanceToFree(t.amount)
+	}
+	transactionStatus = COMPLETED
+
+	t.status = transactionStatus
 }

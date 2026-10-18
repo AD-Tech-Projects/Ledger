@@ -33,14 +33,11 @@ func main() {
 	transaction := transaction.MakeTransaction(
 		"1",
 		5000,
-		transaction.PENDING,
 		transaction.DEPOSIT,
 		&companyAccount,
 		&personAccount,
 	)
+	transaction.Commit()
 
 	logger.Info("Transaction completed successfully")
-	logger.Info("Transaction", transaction)
-	logger.Info("Source Account", companyAccount.GetFreeBalance())
-	logger.Info("Destination Account", personAccount.GetFreeBalance())
 }

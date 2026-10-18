@@ -1,12 +1,16 @@
 package transaction
 
+import (
+	account "github.com/AD-Tech-Projects/Ledger/packages/domain/account"
+)
+
 type Transaction struct {
-	id                   string
-	amount               int64
-	status               TransactionStatus
-	transactionType      TransactionType
-	sourceAccountId      string
-	destinationAccountId string
+	id                 string
+	amount             int64
+	status             TransactionStatus
+	transactionType    TransactionType
+	sourceAccount      *account.Account
+	destinationAccount *account.Account
 }
 
 type TransactionType string
