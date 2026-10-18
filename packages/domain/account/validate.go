@@ -25,3 +25,7 @@ func (a *Account) validateFreeBalance(amount int64) error {
 
 	return nil
 }
+
+func (e *AccountError) Error() string {
+	return e.message
+}

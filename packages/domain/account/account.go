@@ -65,7 +65,3 @@ func (a *Account) MoveHoldBalanceToFree(amount int64) {
 	a.HoldBalance -= amount
 	a.FreeBalance += amount
 }
-
-func (e *AccountError) Error() string {
-	return e.message
-}
