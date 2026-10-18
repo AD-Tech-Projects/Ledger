@@ -10,7 +10,7 @@ func validateAmount(amount int64) error {
 
 func (a *Account) validateHoldBalance(amount int64) error {
 	validateAmount(amount)
-	if a.holdBalance < amount {
+	if a.HoldBalance < amount {
 		return &AccountError{message: "Insufficient hold balance"}
 	}
 
@@ -19,7 +19,7 @@ func (a *Account) validateHoldBalance(amount int64) error {
 
 func (a *Account) validateFreeBalance(amount int64) error {
 	validateAmount(amount)
-	if a.freeBalance < amount {
+	if a.FreeBalance < amount {
 		return &AccountError{message: "Insufficient free balance"}
 	}
 

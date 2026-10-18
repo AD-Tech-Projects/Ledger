@@ -27,29 +27,29 @@ func MakeTransaction(
 	}
 
 	return Transaction{
-		id:                 id,
-		amount:             amount,
-		status:             PENDING,
-		transactionType:    transactionType,
-		sourceAccount:      sourceAccount,
-		destinationAccount: destinationAccount,
+		Id:                 id,
+		Amount:             amount,
+		Status:             PENDING,
+		TransactionType:    transactionType,
+		SourceAccount:      sourceAccount,
+		DestinationAccount: destinationAccount,
 	}
 }
 
 func (t *Transaction) Commit() {
 	transactionStatus := FAILED
 
-	switch t.transactionType {
+	switch t.TransactionType {
 	case DEPOSIT:
-		t.destinationAccount.IncreaseHoldBalance(t.amount)
-		t.sourceAccount.DecreaseHoldBalance(t.amount)
-		t.destinationAccount.MoveHoldBalanceToFree(t.amount)
+		t.DestinationAccount.IncreaseHoldBalance(t.Amount)
+		t.SourceAccount.DecreaseHoldBalance(t.Amount)
+		t.DestinationAccount.MoveHoldBalanceToFree(t.Amount)
 	case WITHDRAWAL:
-		t.sourceAccount.IncreaseHoldBalance(t.amount)
-		t.destinationAccount.DecreaseHoldBalance(t.amount)
-		t.sourceAccount.MoveHoldBalanceToFree(t.amount)
+		t.SourceAccount.IncreaseHoldBalance(t.Amount)
+		t.DestinationAccount.DecreaseHoldBalance(t.Amount)
+		t.SourceAccount.MoveHoldBalanceToFree(t.Amount)
 	}
 	transactionStatus = COMPLETED
 
-	t.status = transactionStatus
+	t.Status = transactionStatus
 }

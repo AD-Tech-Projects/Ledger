@@ -5,12 +5,12 @@ import (
 )
 
 type Transaction struct {
-	id                 string
-	amount             int64
-	status             TransactionStatus
-	transactionType    TransactionType
-	sourceAccount      *account.Account
-	destinationAccount *account.Account
+	Id                 string
+	Amount             int64
+	Status             TransactionStatus
+	TransactionType    TransactionType
+	SourceAccount      *account.Account
+	DestinationAccount *account.Account
 }
 
 type TransactionType string
@@ -29,5 +29,6 @@ const (
 )
 
 type TransactionError struct {
-	message string
+	operation TransactionType
+	message   string
 }

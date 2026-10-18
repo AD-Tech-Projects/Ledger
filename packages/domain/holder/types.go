@@ -2,10 +2,10 @@ package holder
 
 type AccountHolder struct {
 	// database unique identifier for the holder
-	id string
+	Id string
 	// unique document identifier for the holder, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
-	uniqueIdentifier string
-	holderType       HolderType
+	UniqueIdentifier string
+	HolderType       HolderType
 }
 
 type HolderType string

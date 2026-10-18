@@ -1,16 +1,16 @@
 package account
 
 type Account struct {
-	id          string
-	status      AccountStatus
-	accountType AccountType
-	currency    AccountCurrency
+	Id          string
+	Status      AccountStatus
+	AccountType AccountType
+	Currency    AccountCurrency
 	// store the balance in the smallest unit of the currency (e.g., cents for USD)
-	freeBalance     int64
-	reservedBalance int64
-	holdBalance     int64
+	FreeBalance     int64
+	ReservedBalance int64
+	HoldBalance     int64
 	// database unique identifier for the holder of the account
-	holderId string
+	HolderId string
 }
 
 type AccountCurrency string

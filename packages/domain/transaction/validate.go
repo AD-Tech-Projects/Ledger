@@ -11,29 +11,29 @@ func validateTransaction(
 	destinationAccount *account.Account,
 ) error {
 	if amount <= 0 {
-		return &TransactionError{message: "Transaction amount must be greater than zero"}
+		return &TransactionError{message: "Transaction amount must be greater than zero", operation: transactionType}
 	}
 
-	if sourceAccount.GetId() == destinationAccount.GetId() {
-		return &TransactionError{message: "Source and destination accounts cannot be the same"}
+	if sourceAccount.Id == destinationAccount.Id {
+		return &TransactionError{message: "Source and destination accounts cannot be the same", operation: transactionType}
 	}
-	if sourceAccount.GetCurrency() != destinationAccount.GetCurrency() {
-		return &TransactionError{message: "Source and destination accounts must have the same currency"}
+	if sourceAccount.Currency != destinationAccount.Currency {
+		return &TransactionError{message: "Source and destination accounts must have the same currency", operation: transactionType}
 	}
-	if sourceAccount.GetStatus() != account.ACTIVE || destinationAccount.GetStatus() != account.ACTIVE {
-		return &TransactionError{message: "Both source and destination accounts must be active"}
+	if sourceAccount.Status != account.ACTIVE || destinationAccount.Status != account.ACTIVE {
+		return &TransactionError{message: "Both source and destination accounts must be active", operation: transactionType}
 	}
 
-	if transactionType == DEPOSIT && sourceAccount.GetFreeBalance() < amount {
-		return &TransactionError{message: "Insufficient funds in source account for deposit"}
+	if transactionType == DEPOSIT && sourceAccount.FreeBalance < amount {
+		return &TransactionError{message: "Insufficient funds in source account for deposit", operation: transactionType}
 	}
-	if transactionType == WITHDRAWAL && destinationAccount.GetFreeBalance() < amount {
-		return &TransactionError{message: "Insufficient funds in destination account for withdrawal"}
+	if transactionType == WITHDRAWAL && destinationAccount.FreeBalance < amount {
+		return &TransactionError{message: "Insufficient funds in destination account for withdrawal", operation: transactionType}
 	}
 
 	return nil
 }
 
 func (e *TransactionError) Error() string {
-	return e.message
+	return "{" + string(e.operation) + "}: " + e.message
 }

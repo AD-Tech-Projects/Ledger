@@ -13,31 +13,15 @@ func NewAccount(
 	holder *holder.AccountHolder,
 ) Account {
 	return Account{
-		id:              id,
-		status:          status,
-		accountType:     accountType,
-		currency:        currency,
-		freeBalance:     balance,
-		reservedBalance: 0,
-		holdBalance:     0,
-		holderId:        holder.GetId(),
+		Id:              id,
+		Status:          status,
+		AccountType:     accountType,
+		Currency:        currency,
+		FreeBalance:     balance,
+		ReservedBalance: 0,
+		HoldBalance:     0,
+		HolderId:        holder.Id,
 	}
-}
-
-func (a *Account) GetId() string {
-	return a.id
-}
-
-func (a *Account) GetStatus() AccountStatus {
-	return a.status
-}
-
-func (a *Account) GetCurrency() AccountCurrency {
-	return a.currency
-}
-
-func (a *Account) GetFreeBalance() int64 {
-	return a.freeBalance
 }
 
 func (a *Account) IncreaseFreeBalance(amount int64) {
@@ -46,7 +30,7 @@ func (a *Account) IncreaseFreeBalance(amount int64) {
 		panic(err)
 	}
 
-	a.freeBalance += amount
+	a.FreeBalance += amount
 }
 
 func (a *Account) MoveFreeBalanceToHold(amount int64) {
@@ -55,12 +39,12 @@ func (a *Account) MoveFreeBalanceToHold(amount int64) {
 		panic(err)
 	}
 
-	a.freeBalance -= amount
-	a.holdBalance += amount
+	a.FreeBalance -= amount
+	a.HoldBalance += amount
 }
 
 func (a *Account) IncreaseHoldBalance(amount int64) {
-	a.holdBalance += amount
+	a.HoldBalance += amount
 }
 
 func (a *Account) DecreaseHoldBalance(amount int64) {
@@ -69,7 +53,7 @@ func (a *Account) DecreaseHoldBalance(amount int64) {
 		panic(err)
 	}
 
-	a.holdBalance -= amount
+	a.HoldBalance -= amount
 }
 
 func (a *Account) MoveHoldBalanceToFree(amount int64) {
@@ -78,8 +62,8 @@ func (a *Account) MoveHoldBalanceToFree(amount int64) {
 		panic(err)
 	}
 
-	a.holdBalance -= amount
-	a.freeBalance += amount
+	a.HoldBalance -= amount
+	a.FreeBalance += amount
 }
 
 func (e *AccountError) Error() string {

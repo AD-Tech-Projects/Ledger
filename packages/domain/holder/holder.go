@@ -2,20 +2,16 @@ package holder
 
 func NewIndividualAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
-		id:               id,
-		uniqueIdentifier: document,
-		holderType:       INDIVIDUAL,
+		Id:               id,
+		UniqueIdentifier: document,
+		HolderType:       INDIVIDUAL,
 	}
 }
 
 func NewCompanyAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
-		id:               id,
-		uniqueIdentifier: document,
-		holderType:       COMPANY,
+		Id:               id,
+		UniqueIdentifier: document,
+		HolderType:       COMPANY,
 	}
-}
-
-func (h *AccountHolder) GetId() string {
-	return h.id
 }

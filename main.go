@@ -29,6 +29,8 @@ func main() {
 		0,
 		&personHolder,
 	)
+	logger.Info("Company account:", companyAccount)
+	logger.Info("Person account:", personAccount)
 
 	transaction := transaction.MakeTransaction(
 		"1",
@@ -37,7 +39,12 @@ func main() {
 		&companyAccount,
 		&personAccount,
 	)
-	transaction.Commit()
+	logger.Info("Transaction created successfully", transaction)
 
-	logger.Info("Transaction completed successfully")
+	transaction.Commit()
+	logger.Info("Transaction completed successfully", transaction)
+	logger.Info("Company account:", companyAccount)
+	logger.Info("Person account:", personAccount)
+
+	logger.Debug("Done")
 }
