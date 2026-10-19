@@ -1,27 +1,24 @@
-package transaction
+package domain
 
 import (
 	"testing"
-
-	account "github.com/AD-Tech-Projects/Ledger/packages/domain/account"
-	holder "github.com/AD-Tech-Projects/Ledger/packages/domain/holder"
 )
 
 func TestSuccessfulTransaction(t *testing.T) {
-	companyHolder := holder.NewCompanyAccountHolder("1", "12345678000195")
-	personHolder := holder.NewIndividualAccountHolder("2", "123456789")
+	companyHolder := newCompanyAccountHolder("1", "12345678000195")
+	personHolder := newIndividualAccountHolder("2", "123456789")
 
 	companyAccount := createAccount("1", 10000, companyHolder)
 	personAccount := createAccount("2", 0, personHolder)
 
-	ledgerTransaction := MakeTransaction(
+	ledgerTransaction := makeTransaction(
 		"1",
 		5000,
 		DEPOSIT,
 		&companyAccount,
 		&personAccount,
 	)
-	ledgerTransaction.Commit()
+	ledgerTransaction.commit()
 
 	assertTransactionCompletion(t, &ledgerTransaction)
 	assertCompanyAccountFreeBalance(t, &companyAccount)
@@ -38,7 +35,7 @@ func assertTransactionCompletion(t *testing.T, transaction *Transaction) {
 	}
 }
 
-func assertCompanyAccountFreeBalance(t *testing.T, companyAccount *account.Account) {
+func assertCompanyAccountFreeBalance(t *testing.T, companyAccount *Account) {
 	const expected = 5000
 	result := companyAccount.FreeBalance
 
@@ -47,7 +44,7 @@ func assertCompanyAccountFreeBalance(t *testing.T, companyAccount *account.Accou
 	}
 }
 
-func assertPersonAccountFreeBalance(t *testing.T, personAccount *account.Account) {
+func assertPersonAccountFreeBalance(t *testing.T, personAccount *Account) {
 	const expected = 5000
 	result := personAccount.FreeBalance
 
@@ -56,7 +53,7 @@ func assertPersonAccountFreeBalance(t *testing.T, personAccount *account.Account
 	}
 }
 
-func assertHeldBalance(t *testing.T, companyAccount *account.Account, personAccount *account.Account) {
+func assertHeldBalance(t *testing.T, companyAccount *Account, personAccount *Account) {
 	if companyAccount.HoldBalance != 0 || personAccount.HoldBalance != 0 {
 		t.Fatalf(
 			"expected no held balance after commit, got company=%d person=%d",
@@ -67,14 +64,14 @@ func assertHeldBalance(t *testing.T, companyAccount *account.Account, personAcco
 }
 
 func TestTransactionRollback(t *testing.T) {
-	companyHolder := holder.NewCompanyAccountHolder("1", "12345678000195")
-	personHolder := holder.NewIndividualAccountHolder("2", "123456789")
+	companyHolder := newCompanyAccountHolder("1", "12345678000195")
+	personHolder := newIndividualAccountHolder("2", "123456789")
 
 	companyAccount := createAccount("1", 10000, companyHolder)
 	personAccount := createAccount("2", 0, personHolder)
 
 	assertTransactionCreationPanics(t, func() {
-		MakeTransaction(
+		makeTransaction(
 			"1",
 			15000,
 			DEPOSIT,
@@ -114,12 +111,12 @@ func assertTransactionCreationPanics(t *testing.T, createTransaction func()) {
 func createAccount(
 	id string,
 	balance int64,
-	holder holder.AccountHolder) account.Account {
-	return account.NewAccount(
+	holder AccountHolder) Account {
+	return NewAccount(
 		id,
-		account.ACTIVE,
-		account.CHECKING,
-		account.USD,
+		ACTIVE,
+		CHECKING,
+		USD,
 		balance,
 		&holder,
 	)
