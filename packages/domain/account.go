@@ -11,6 +11,7 @@ type Account struct {
 	HoldBalance     int64
 	// database unique identifier for the holder of the account
 	HolderId string
+	Holder   *AccountHolder
 }
 
 type AccountCurrency string
@@ -52,6 +53,7 @@ func NewAccount(
 		ReservedBalance: 0,
 		HoldBalance:     0,
 		HolderId:        holder.Id,
+		Holder:          nil,
 	}
 }
 
