@@ -5,7 +5,7 @@ BINARY_NAME=out/app
 
 -include .env
 
-DB_URL=postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DATABASE_NAME)?sslmode=disable
+DB_URL=postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 MIGRATIONS_DIR=file://migrations
 
 run:
