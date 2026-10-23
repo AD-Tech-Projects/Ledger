@@ -4,6 +4,8 @@ import (
 	"os"
 
 	logger "github.com/AD-Tech-Projects/Go-Libs/packages/logger"
+	api "github.com/AD-Tech-Projects/Ledger/packages/api"
+	handlers "github.com/AD-Tech-Projects/Ledger/packages/handlers"
 	database "github.com/AD-Tech-Projects/Ledger/packages/infra/database"
 	"github.com/joho/godotenv"
 )
@@ -11,8 +13,12 @@ import (
 func main() {
 	loadEnvs()
 
-	connect := database.Connect()
-	connect.AutoMigrate()
+	db := database.Connect()
+
+	resolver := handlers.NewHandlerResolver(db)
+	router := api.NewRouter(resolver)
+
+	api.Listen(os.Getenv("APP_PORT"), router)
 
 	logger.Debug("Done")
 }
@@ -23,6 +29,4 @@ func loadEnvs() {
 		logger.Error("Failed to load .env file, using system environment variables instead")
 	}
 
-	port := os.Getenv("APP_PORT")
-	logger.Info("Starting the application on port: " + port)
 }
