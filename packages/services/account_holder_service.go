@@ -24,6 +24,10 @@ func NewAccountHolderService(
 }
 
 func (s *AccountHolderService) Create(ctx context.Context, holder *domain.AccountHolder) (*domain.AccountHolder, error) {
+	if holder == nil {
+		return nil, fmt.Errorf("account holder is required")
+	}
+
 	if holder.Id == "" {
 		holder.Id = uuid.NewString()
 	}

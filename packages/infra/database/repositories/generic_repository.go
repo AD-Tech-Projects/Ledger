@@ -71,6 +71,28 @@ func (r *GormRepository[M, E]) GetByID(
 	return r.toDomain(&model), nil
 }
 
+func (r *GormRepository[M, E]) GetAll(
+	ctx context.Context,
+	options ...QueryOption[M],
+) ([]*E, error) {
+	var models []M
+	query := r.db.WithContext(ctx)
+	for _, option := range options {
+		query = option(query)
+	}
+
+	if err := query.Find(&models).Error; err != nil {
+		return nil, err
+	}
+
+	entities := make([]*E, 0, len(models))
+	for index := range models {
+		entities = append(entities, r.toDomain(&models[index]))
+	}
+
+	return entities, nil
+}
+
 func (r *GormRepository[M, E]) Update(ctx context.Context, domainEntity *E) error {
 	model := r.fromDomain(domainEntity)
 	return r.db.WithContext(ctx).Save(model).Error

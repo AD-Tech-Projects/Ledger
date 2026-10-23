@@ -13,6 +13,7 @@ import (
 )
 
 var ErrInvalidTransaction = errors.New("invalid transaction")
+var ErrTransactionNotFound = errors.New("transaction not found")
 
 type TransactionService struct {
 	transactionRepository *repositories.GormRepository[models.TransactionModel, domain.Transaction]
@@ -27,6 +28,10 @@ func NewTransactionService(
 }
 
 func (s *TransactionService) Create(ctx context.Context, transaction *domain.Transaction) (*domain.Transaction, error) {
+	if transaction == nil {
+		return nil, fmt.Errorf("%w: transaction is required", ErrInvalidTransaction)
+	}
+
 	if transaction.SourceAccount == nil || transaction.DestinationAccount == nil {
 		return nil, fmt.Errorf("%w: source and destination accounts are required", ErrInvalidTransaction)
 	}
@@ -48,4 +53,29 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 	}
 
 	return transaction, nil
+}
+
+func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Transaction, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return nil, fmt.Errorf("%w: transaction id must be a valid UUID", ErrInvalidTransaction)
+	}
+
+	transaction, err := s.transactionRepository.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transaction by id: %w", err)
+	}
+	if transaction == nil {
+		return nil, ErrTransactionNotFound
+	}
+
+	return transaction, nil
+}
+
+func (s *TransactionService) GetAll(ctx context.Context) ([]*domain.Transaction, error) {
+	transactions, err := s.transactionRepository.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transactions: %w", err)
+	}
+
+	return transactions, nil
 }
