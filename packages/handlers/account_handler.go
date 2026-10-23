@@ -6,6 +6,7 @@ import (
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/services"
+	"github.com/gin-gonic/gin"
 )
 
 type AccountHandler struct {
@@ -38,10 +39,10 @@ type createAccountRequestData struct {
 	Currency    domain.AccountCurrency `json:"currency"`
 }
 
-func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
-	context := r.Context()
+func (h *AccountHandler) Create(c *gin.Context) {
+	context := c.Request.Context()
 
-	body, ok := decodeRequestBody[createAccountRequestBody](w, r.Body)
+	body, ok := decodeRequestBody[createAccountRequestBody](c)
 	if !ok {
 		return
 	}
@@ -53,7 +54,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	createdHolder, err := h.holderService.Create(context, &holder)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
@@ -67,49 +68,49 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	createdAccount, err := h.accountService.Create(context, &account)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidAccount) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
 	foundAccount, err := h.accountService.GetById(context, createdAccount.Id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusCreated, foundAccount)
+	encodeJSONResponse(c, http.StatusCreated, foundAccount)
 }
 
-func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
-	accounts, err := h.accountService.GetAll(r.Context())
+func (h *AccountHandler) List(c *gin.Context) {
+	accounts, err := h.accountService.GetAll(c.Request.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusOK, accounts)
+	encodeJSONResponse(c, http.StatusOK, accounts)
 }
 
-func (h *AccountHandler) GetById(w http.ResponseWriter, r *http.Request) {
-	account, err := h.accountService.GetById(r.Context(), r.PathValue("id"))
+func (h *AccountHandler) GetById(c *gin.Context) {
+	account, err := h.accountService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidAccount) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
 		if errors.Is(err, services.ErrAccountNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeNotFound(c, err)
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusOK, account)
+	encodeJSONResponse(c, http.StatusOK, account)
 }
 
 type updateAccountRequestBody struct {
@@ -119,13 +120,13 @@ type updateAccountRequestBody struct {
 	HolderId    *string                 `json:"holderId"`
 }
 
-func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
-	body, ok := decodeRequestBody[updateAccountRequestBody](w, r.Body)
+func (h *AccountHandler) Update(c *gin.Context) {
+	body, ok := decodeRequestBody[updateAccountRequestBody](c)
 	if !ok {
 		return
 	}
 
-	account, err := h.accountService.Update(r.Context(), r.PathValue("id"), services.AccountPatch{
+	account, err := h.accountService.Update(c.Request.Context(), c.Param("id"), services.AccountPatch{
 		Status:      body.Status,
 		AccountType: body.AccountType,
 		Currency:    body.Currency,
@@ -133,35 +134,35 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidAccount) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
 		if errors.Is(err, services.ErrAccountNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeNotFound(c, err)
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusOK, account)
+	encodeJSONResponse(c, http.StatusOK, account)
 }
 
-func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	if err := h.accountService.Deactivate(r.Context(), r.PathValue("id")); err != nil {
+func (h *AccountHandler) Delete(c *gin.Context) {
+	if err := h.accountService.Deactivate(c.Request.Context(), c.Param("id")); err != nil {
 		if errors.Is(err, services.ErrInvalidAccount) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
 		if errors.Is(err, services.ErrAccountNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeNotFound(c, err)
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
 }

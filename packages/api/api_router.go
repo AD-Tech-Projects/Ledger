@@ -5,40 +5,37 @@ import (
 
 	logger "github.com/AD-Tech-Projects/Go-Libs/packages/logger"
 	handlers "github.com/AD-Tech-Projects/Ledger/packages/handlers"
+	"github.com/gin-gonic/gin"
 )
 
-func Listen(port string, router http.Handler) {
+func Listen(port string, router *gin.Engine) {
 	logger.Info("Starting the application on port: " + port)
 
 	address := ":" + port
-	if err := http.ListenAndServe(address, router); err != nil {
+	if err := router.Run(address); err != nil {
 		logger.Error("Server failed to start:", err)
 		panic(err)
 	}
 }
 
-func NewRouter(handlers *handlers.HandlerResolver) http.Handler {
-	mux := http.NewServeMux()
+func NewRouter(handlers *handlers.HandlerResolver) *gin.Engine {
+	router := gin.Default()
 
-	mux.HandleFunc(
-		"GET /health",
-		healthCheckHandler,
-	)
+	router.GET("/health", healthCheckHandler)
 
-	mux.HandleFunc("POST /accounts", handlers.Account.Create)
-	mux.HandleFunc("GET /accounts", handlers.Account.List)
-	mux.HandleFunc("GET /accounts/{id}", handlers.Account.GetById)
-	mux.HandleFunc("PATCH /accounts/{id}", handlers.Account.Update)
-	mux.HandleFunc("DELETE /accounts/{id}", handlers.Account.Delete)
+	router.POST("/accounts", handlers.Account.Create)
+	router.GET("/accounts", handlers.Account.List)
+	router.GET("/accounts/:id", handlers.Account.GetById)
+	router.PATCH("/accounts/:id", handlers.Account.Update)
+	router.DELETE("/accounts/:id", handlers.Account.Delete)
 
-	mux.HandleFunc("POST /transactions", handlers.Transaction.Create)
-	mux.HandleFunc("GET /transactions", handlers.Transaction.List)
-	mux.HandleFunc("GET /transactions/{id}", handlers.Transaction.GetById)
+	router.POST("/transactions", handlers.Transaction.Create)
+	router.GET("/transactions", handlers.Transaction.List)
+	router.GET("/transactions/:id", handlers.Transaction.GetById)
 
-	return mux
+	return router
 }
 
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+func healthCheckHandler(c *gin.Context) {
+	c.String(http.StatusOK, "OK")
 }

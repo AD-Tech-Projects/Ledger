@@ -1,30 +1,38 @@
 package handlers
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func decodeRequestBody[T any](w http.ResponseWriter, body io.Reader) (*T, bool) {
+func decodeRequestBody[T any](c *gin.Context) (*T, bool) {
 	var value T
 
-	if err := json.NewDecoder(body).Decode(&value); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&value); err != nil {
+		c.String(http.StatusBadRequest, "invalid request body")
 		return nil, false
 	}
 
 	return &value, true
 }
 
-func encodeJSONResponse[T any](w http.ResponseWriter, status int, result T) bool {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+func encodeJSONResponse[T any](c *gin.Context, status int, result T) {
+	c.JSON(status, result)
+}
 
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		http.Error(w, "failed to encode response: "+err.Error(), http.StatusInternalServerError)
-		return false
-	}
+func writeError(c *gin.Context, status int, err error) {
+	c.String(status, err.Error())
+}
 
-	return true
+func writeInternalServerError(c *gin.Context, err error) {
+	writeError(c, http.StatusInternalServerError, err)
+}
+
+func writeBadRequest(c *gin.Context, err error) {
+	writeError(c, http.StatusBadRequest, err)
+}
+
+func writeNotFound(c *gin.Context, err error) {
+	writeError(c, http.StatusNotFound, err)
 }

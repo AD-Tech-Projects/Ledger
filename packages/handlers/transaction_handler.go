@@ -6,6 +6,7 @@ import (
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/services"
+	"github.com/gin-gonic/gin"
 )
 
 type TransactionHandler struct {
@@ -18,10 +19,10 @@ func NewTransactionHandler(transactionService *services.TransactionService) *Tra
 	}
 }
 
-func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	context := r.Context()
+func (h *TransactionHandler) Create(c *gin.Context) {
+	context := c.Request.Context()
 
-	account, ok := decodeRequestBody[domain.Transaction](w, r.Body)
+	account, ok := decodeRequestBody[domain.Transaction](c)
 	if !ok {
 		return
 	}
@@ -29,42 +30,42 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	createdTransaction, err := h.transactionService.Create(context, account)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidTransaction) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusCreated, createdTransaction)
+	encodeJSONResponse(c, http.StatusCreated, createdTransaction)
 }
 
-func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
-	transactions, err := h.transactionService.GetAll(r.Context())
+func (h *TransactionHandler) List(c *gin.Context) {
+	transactions, err := h.transactionService.GetAll(c.Request.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusOK, transactions)
+	encodeJSONResponse(c, http.StatusOK, transactions)
 }
 
-func (h *TransactionHandler) GetById(w http.ResponseWriter, r *http.Request) {
-	transaction, err := h.transactionService.GetById(r.Context(), r.PathValue("id"))
+func (h *TransactionHandler) GetById(c *gin.Context) {
+	transaction, err := h.transactionService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidTransaction) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeBadRequest(c, err)
 			return
 		}
 		if errors.Is(err, services.ErrTransactionNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			writeNotFound(c, err)
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeInternalServerError(c, err)
 		return
 	}
 
-	encodeJSONResponse(w, http.StatusOK, transaction)
+	encodeJSONResponse(c, http.StatusOK, transaction)
 }
