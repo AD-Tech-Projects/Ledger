@@ -23,8 +23,13 @@ func NewAccountHandler(
 }
 
 type createAccountRequestBody struct {
-	Holder  domain.AccountHolder     `json:"holder"`
+	Holder  createHolderRequestData  `json:"holder"`
 	Account createAccountRequestData `json:"account"`
+}
+
+type createHolderRequestData struct {
+	UniqueIdentifier string            `json:"uniqueIdentifier"`
+	HolderType       domain.HolderType `json:"holderType"`
 }
 
 type createAccountRequestData struct {
@@ -41,7 +46,10 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	holder := body.Holder
+	holder := domain.AccountHolder{
+		UniqueIdentifier: body.Holder.UniqueIdentifier,
+		HolderType:       body.Holder.HolderType,
+	}
 
 	createdHolder, err := h.holderService.Create(context, &holder)
 	if err != nil {
@@ -53,8 +61,8 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Status:      body.Account.Status,
 		AccountType: body.Account.AccountType,
 		Currency:    body.Account.Currency,
+		HolderId:    createdHolder.Id,
 	}
-	account.HolderId = createdHolder.Id
 
 	createdAccount, err := h.accountService.Create(context, &account)
 	if err != nil {
