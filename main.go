@@ -28,5 +28,4 @@ func loadEnvs() {
 	if err != nil {
 		logger.Error("Failed to load .env file, using system environment variables instead")
 	}
-
 }
