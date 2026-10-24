@@ -32,7 +32,7 @@ func (e *transactionError) Error() string {
 	return fmt.Errorf("{%s}: %s", e.operation, e.message).Error()
 }
 
-func makeTransaction(
+func MakeTransaction(
 	id string,
 	amount int64,
 	transactionType TransactionType,
@@ -64,7 +64,7 @@ func makeTransaction(
 	}
 }
 
-func (t *Transaction) commit() {
+func (t *Transaction) Commit() {
 	transactionStatus := FAILED
 
 	switch t.TransactionType {

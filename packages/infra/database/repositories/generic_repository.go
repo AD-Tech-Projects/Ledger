@@ -28,9 +28,11 @@ func NewRepository[M any, E any](
 	}
 }
 
-func Join[M any](association string) QueryOption[M] {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Joins(association)
+func (r *GormRepository[M, E]) WithDB(db *gorm.DB) *GormRepository[M, E] {
+	return &GormRepository[M, E]{
+		db:         db,
+		toDomain:   r.toDomain,
+		fromDomain: r.fromDomain,
 	}
 }
 
@@ -73,12 +75,16 @@ func (r *GormRepository[M, E]) GetByID(
 
 func (r *GormRepository[M, E]) GetAll(
 	ctx context.Context,
+	filter *E,
 	options ...QueryOption[M],
 ) ([]*E, error) {
 	var models []M
 	query := r.db.WithContext(ctx)
 	for _, option := range options {
 		query = option(query)
+	}
+	if filter != nil {
+		query = query.Where(r.fromDomain(filter))
 	}
 
 	if err := query.Find(&models).Error; err != nil {
@@ -101,4 +107,17 @@ func (r *GormRepository[M, E]) Update(ctx context.Context, domainEntity *E) erro
 func (r *GormRepository[M, E]) Delete(ctx context.Context, id string) error {
 	var model M
 	return r.db.WithContext(ctx).Delete(&model, id).Error
+}
+
+func (r *GormRepository[M, E]) Transaction(
+	ctx context.Context,
+	fn func(*gorm.DB) error,
+) error {
+	return r.db.WithContext(ctx).Transaction(fn)
+}
+
+func Join[M any](association string) QueryOption[M] {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Joins(association)
+	}
 }

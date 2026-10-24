@@ -80,8 +80,8 @@ func (s *AccountService) GetById(ctx context.Context, id string) (*domain.Accoun
 	return account, nil
 }
 
-func (s *AccountService) GetAll(ctx context.Context) ([]*domain.Account, error) {
-	accounts, err := s.accountRepository.GetAll(ctx, repositories.Join[models.AccountModel]("Holder"))
+func (s *AccountService) GetAll(ctx context.Context, filter *domain.Account) ([]*domain.Account, error) {
+	accounts, err := s.accountRepository.GetAll(ctx, filter, repositories.Join[models.AccountModel]("Holder"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accounts: %w", err)
 	}

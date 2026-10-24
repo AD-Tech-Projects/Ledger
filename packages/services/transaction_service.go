@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/models"
@@ -17,13 +18,16 @@ var ErrTransactionNotFound = errors.New("transaction not found")
 
 type TransactionService struct {
 	transactionRepository *repositories.GormRepository[models.TransactionModel, domain.Transaction]
+	accountRepository     *repositories.GormRepository[models.AccountModel, domain.Account]
 }
 
 func NewTransactionService(
 	transactionRepository *repositories.GormRepository[models.TransactionModel, domain.Transaction],
+	accountRepository *repositories.GormRepository[models.AccountModel, domain.Account],
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepository: transactionRepository,
+		accountRepository:     accountRepository,
 	}
 }
 
@@ -48,11 +52,90 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		transaction.Id = uuid.NewString()
 	}
 
-	if err := s.transactionRepository.Create(ctx, transaction); err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	err := s.transactionRepository.Transaction(ctx, func(tx *gorm.DB) error {
+		accountRepository := s.accountRepository.WithDB(tx)
+		transactionRepository := s.transactionRepository.WithDB(tx)
+
+		sourceAccount := transaction.SourceAccount
+		destinationAccount := transaction.DestinationAccount
+
+		createdTransaction, err := makeTransactionSafely(
+			transaction.Id,
+			transaction.Amount,
+			transaction.TransactionType,
+			sourceAccount,
+			destinationAccount,
+		)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+		}
+		*transaction = createdTransaction
+
+		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
+			return fmt.Errorf("failed to update source account: %w", err)
+		}
+		if err := accountRepository.Update(ctx, destinationAccount); err != nil {
+			return fmt.Errorf("failed to update destination account: %w", err)
+		}
+		if err := transactionRepository.Create(ctx, transaction); err != nil {
+			return fmt.Errorf("failed to create transaction: %w", err)
+		}
+
+		if err := commitTransactionSafely(transaction); err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+		}
+
+		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
+			return fmt.Errorf("failed to update source account after commit: %w", err)
+		}
+		if err := accountRepository.Update(ctx, destinationAccount); err != nil {
+			return fmt.Errorf("failed to update destination account after commit: %w", err)
+		}
+		if err := transactionRepository.Update(ctx, transaction); err != nil {
+			return fmt.Errorf("failed to update transaction: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return transaction, nil
+}
+
+func makeTransactionSafely(
+	id string,
+	amount int64,
+	transactionType domain.TransactionType,
+	sourceAccount *domain.Account,
+	destinationAccount *domain.Account,
+) (transaction domain.Transaction, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("%v", recovered)
+		}
+	}()
+
+	transaction = domain.MakeTransaction(
+		id,
+		amount,
+		transactionType,
+		sourceAccount,
+		destinationAccount,
+	)
+	return transaction, nil
+}
+
+func commitTransactionSafely(transaction *domain.Transaction) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("%v", recovered)
+		}
+	}()
+
+	transaction.Commit()
+	return nil
 }
 
 func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Transaction, error) {
@@ -71,8 +154,8 @@ func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Tr
 	return transaction, nil
 }
 
-func (s *TransactionService) GetAll(ctx context.Context) ([]*domain.Transaction, error) {
-	transactions, err := s.transactionRepository.GetAll(ctx)
+func (s *TransactionService) GetAll(ctx context.Context, filter *domain.Transaction) ([]*domain.Transaction, error) {
+	transactions, err := s.transactionRepository.GetAll(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}

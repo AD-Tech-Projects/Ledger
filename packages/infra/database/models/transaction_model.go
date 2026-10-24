@@ -27,12 +27,20 @@ func TransactionToDomain(m *TransactionModel) *domain.Transaction {
 }
 
 func TransactionFromDomain(d *domain.Transaction) *TransactionModel {
+	var sourceAccountID, destinationAccountID string
+	if d.SourceAccount != nil {
+		sourceAccountID = d.SourceAccount.Id
+	}
+	if d.DestinationAccount != nil {
+		destinationAccountID = d.DestinationAccount.Id
+	}
+
 	return &TransactionModel{
 		BaseModel:            BaseModel{ID: d.Id},
 		Amount:               d.Amount,
 		Status:               string(d.Status),
 		TransactionType:      string(d.TransactionType),
-		SourceAccountID:      d.SourceAccount.Id,
-		DestinationAccountID: d.DestinationAccount.Id,
+		SourceAccountID:      sourceAccountID,
+		DestinationAccountID: destinationAccountID,
 	}
 }

@@ -91,7 +91,14 @@ func (h *AccountHandler) Create(c *gin.Context) {
 
 func (h *AccountHandler) List(c *gin.Context) {
 	log := logger.WithContext("AccountHandler.list")
-	accounts, err := h.accountService.GetAll(c.Request.Context())
+	filter := &domain.Account{
+		Id:          c.Query("id"),
+		Status:      domain.AccountStatus(c.Query("status")),
+		AccountType: domain.AccountType(c.Query("accountType")),
+		Currency:    domain.AccountCurrency(c.Query("currency")),
+		HolderId:    c.Query("holderId"),
+	}
+	accounts, err := h.accountService.GetAll(c.Request.Context(), filter)
 	if err != nil {
 		log.Error(err)
 		writeInternalServerError(c, err)

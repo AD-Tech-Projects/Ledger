@@ -19,10 +19,10 @@ func NewHandlerResolver(db *gorm.DB) *HandlerResolver {
 
 	holderService := services.NewAccountHolderService(holderRepository)
 	accountService := services.NewAccountService(accountRepository)
-	transactionService := services.NewTransactionService(transactionRepository)
+	transactionService := services.NewTransactionService(transactionRepository, accountRepository)
 
 	accountHandler := NewAccountHandler(holderService, accountService)
-	transactionHandler := NewTransactionHandler(transactionService)
+	transactionHandler := NewTransactionHandler(transactionService, accountService)
 
 	return &HandlerResolver{
 		Account:     accountHandler,
