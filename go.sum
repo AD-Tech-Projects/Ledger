@@ -23,8 +23,8 @@ cloud.google.com/go/spanner v1.96.1 h1:pLmq5/Fj+Yu6YGRBz9oMPm3ZRQIeG14FYBWFwhZZa
 cloud.google.com/go/spanner v1.96.1/go.mod h1:VqMSp/YlTofUq1q6ekkXBAmhAs6X860YL0I8wo7i+k0=
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
-github.com/AD-Tech-Projects/Go-Libs v1.0.0 h1:EkMNGnJln0EZtD/yA90pCHdLNw8lXfeufqjLRw6XB14=
-github.com/AD-Tech-Projects/Go-Libs v1.0.0/go.mod h1:fNtBHJ2YfbG8XJVgAIZGY2E1/yWlllFtb6GuECZQbgo=
+github.com/AD-Tech-Projects/Go-Libs v1.0.1 h1:VcXaURg8nyRrqyWRbCkFu+ZhqaLiNecWhI5RNce+shA=
+github.com/AD-Tech-Projects/Go-Libs v1.0.1/go.mod h1:fNtBHJ2YfbG8XJVgAIZGY2E1/yWlllFtb6GuECZQbgo=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1 h1:zvXfGJCWvywnCA814d8ZiVyt+fm9nnTE8xSb99zRyfo=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1/go.mod h1:iptorS+VYKFL2N6PnebpS91dubG35eAOEERnT4PJbQU=
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.1 h1:u93s+zU2JD62im61Bm5CZIc1ZrOJaIAWEg0WOrMVkEo=
