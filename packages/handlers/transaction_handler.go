@@ -25,11 +25,10 @@ func NewTransactionHandler(
 }
 
 type createTransactionRequestBody struct {
-	Amount               int64                    `json:"amount"`
-	Status               domain.TransactionStatus `json:"status"`
-	TransactionType      domain.TransactionType   `json:"transactionType"`
-	SourceAccountId      string                   `json:"sourceAccountId"`
-	DestinationAccountId string                   `json:"destinationAccountId"`
+	Amount               int64                  `json:"amount"`
+	TransactionType      domain.TransactionType `json:"transactionType"`
+	SourceAccountId      string                 `json:"sourceAccountId"`
+	DestinationAccountId string                 `json:"destinationAccountId"`
 }
 
 func (h *TransactionHandler) Create(c *gin.Context) {
@@ -52,7 +51,7 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 
 	transaction := &domain.Transaction{
 		Amount:             transactionPayload.Amount,
-		Status:             transactionPayload.Status,
+		Status:             domain.PENDING,
 		TransactionType:    transactionPayload.TransactionType,
 		SourceAccount:      sourceAccount,
 		DestinationAccount: destinationAccount,
