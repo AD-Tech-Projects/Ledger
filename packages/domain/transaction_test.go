@@ -11,14 +11,14 @@ func TestSuccessfulTransaction(t *testing.T) {
 	companyAccount := createAccount("1", 10000, companyHolder)
 	personAccount := createAccount("2", 0, personHolder)
 
-	ledgerTransaction := makeTransaction(
+	ledgerTransaction := MakeTransaction(
 		"1",
 		5000,
 		DEPOSIT,
 		&companyAccount,
 		&personAccount,
 	)
-	ledgerTransaction.commit()
+	ledgerTransaction.Commit()
 
 	assertTransactionCompletion(t, &ledgerTransaction)
 	assertCompanyAccountFreeBalance(t, &companyAccount)
@@ -71,7 +71,7 @@ func TestTransactionRollback(t *testing.T) {
 	personAccount := createAccount("2", 0, personHolder)
 
 	assertTransactionCreationPanics(t, func() {
-		makeTransaction(
+		MakeTransaction(
 			"1",
 			15000,
 			DEPOSIT,
