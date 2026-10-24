@@ -16,11 +16,10 @@ func main() {
 	db := database.Connect()
 
 	resolver := handlers.NewHandlerResolver(db)
-	router := api.NewRouter(resolver)
 
-	api.Listen(os.Getenv("APP_PORT"), router)
-
-	logger.Debug("Done")
+	apiLogger := logger.WithContext("ApiRouter")
+	router := api.NewRouter(resolver, apiLogger)
+	api.Listen(os.Getenv("APP_PORT"), router, apiLogger)
 }
 
 func loadEnvs() {

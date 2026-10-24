@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	logger "github.com/AD-Tech-Projects/Go-Libs/packages/logger"
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/services"
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,7 @@ type createAccountRequestData struct {
 }
 
 func (h *AccountHandler) Create(c *gin.Context) {
+	log := logger.WithContext("AccountHandler.create")
 	context := c.Request.Context()
 
 	body, ok := decodeRequestBody[createAccountRequestBody](c)
@@ -54,6 +56,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 
 	createdHolder, err := h.holderService.Create(context, &holder)
 	if err != nil {
+		log.Error(err)
 		writeInternalServerError(c, err)
 		return
 	}
@@ -67,6 +70,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 
 	createdAccount, err := h.accountService.Create(context, &account)
 	if err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidAccount) {
 			writeBadRequest(c, err)
 			return
@@ -77,6 +81,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 
 	foundAccount, err := h.accountService.GetById(context, createdAccount.Id)
 	if err != nil {
+		log.Error(err)
 		writeInternalServerError(c, err)
 		return
 	}
@@ -85,8 +90,10 @@ func (h *AccountHandler) Create(c *gin.Context) {
 }
 
 func (h *AccountHandler) List(c *gin.Context) {
+	log := logger.WithContext("AccountHandler.list")
 	accounts, err := h.accountService.GetAll(c.Request.Context())
 	if err != nil {
+		log.Error(err)
 		writeInternalServerError(c, err)
 		return
 	}
@@ -95,8 +102,10 @@ func (h *AccountHandler) List(c *gin.Context) {
 }
 
 func (h *AccountHandler) GetById(c *gin.Context) {
+	log := logger.WithContext("AccountHandler.getById")
 	account, err := h.accountService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidAccount) {
 			writeBadRequest(c, err)
 			return
@@ -121,6 +130,7 @@ type updateAccountRequestBody struct {
 }
 
 func (h *AccountHandler) Update(c *gin.Context) {
+	log := logger.WithContext("AccountHandler.update")
 	body, ok := decodeRequestBody[updateAccountRequestBody](c)
 	if !ok {
 		return
@@ -133,6 +143,7 @@ func (h *AccountHandler) Update(c *gin.Context) {
 		HolderId:    body.HolderId,
 	})
 	if err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidAccount) {
 			writeBadRequest(c, err)
 			return
@@ -150,7 +161,9 @@ func (h *AccountHandler) Update(c *gin.Context) {
 }
 
 func (h *AccountHandler) Delete(c *gin.Context) {
+	log := logger.WithContext("AccountHandler.delete")
 	if err := h.accountService.Deactivate(c.Request.Context(), c.Param("id")); err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidAccount) {
 			writeBadRequest(c, err)
 			return

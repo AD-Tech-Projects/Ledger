@@ -10,6 +10,7 @@ func decodeRequestBody[T any](c *gin.Context) (*T, bool) {
 	var value T
 
 	if err := c.ShouldBindJSON(&value); err != nil {
+		_ = c.Error(err)
 		c.String(http.StatusBadRequest, "invalid request body")
 		return nil, false
 	}
@@ -22,6 +23,7 @@ func encodeJSONResponse[T any](c *gin.Context, status int, result T) {
 }
 
 func writeError(c *gin.Context, status int, err error) {
+	_ = c.Error(err)
 	c.String(status, err.Error())
 }
 

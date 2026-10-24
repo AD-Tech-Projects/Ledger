@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	logger "github.com/AD-Tech-Projects/Go-Libs/packages/logger"
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/services"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ func NewTransactionHandler(transactionService *services.TransactionService) *Tra
 }
 
 func (h *TransactionHandler) Create(c *gin.Context) {
+	log := logger.WithContext("TransactionHandler.create")
 	context := c.Request.Context()
 
 	account, ok := decodeRequestBody[domain.Transaction](c)
@@ -29,6 +31,7 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 
 	createdTransaction, err := h.transactionService.Create(context, account)
 	if err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidTransaction) {
 			writeBadRequest(c, err)
 			return
@@ -42,8 +45,10 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 }
 
 func (h *TransactionHandler) List(c *gin.Context) {
+	log := logger.WithContext("TransactionHandler.list")
 	transactions, err := h.transactionService.GetAll(c.Request.Context())
 	if err != nil {
+		log.Error(err)
 		writeInternalServerError(c, err)
 		return
 	}
@@ -52,8 +57,10 @@ func (h *TransactionHandler) List(c *gin.Context) {
 }
 
 func (h *TransactionHandler) GetById(c *gin.Context) {
+	log := logger.WithContext("TransactionHandler.getById")
 	transaction, err := h.transactionService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
+		log.Error(err)
 		if errors.Is(err, services.ErrInvalidTransaction) {
 			writeBadRequest(c, err)
 			return
