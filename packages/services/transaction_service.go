@@ -43,7 +43,6 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 	if _, err := uuid.Parse(transaction.SourceAccount.Id); err != nil {
 		return nil, fmt.Errorf("%w: source account id must be a valid UUID", ErrInvalidTransaction)
 	}
-
 	if _, err := uuid.Parse(transaction.DestinationAccount.Id); err != nil {
 		return nil, fmt.Errorf("%w: destination account id must be a valid UUID", ErrInvalidTransaction)
 	}
@@ -56,20 +55,24 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		accountRepository := s.accountRepository.WithDB(tx)
 		transactionRepository := s.transactionRepository.WithDB(tx)
 
-		sourceAccount := transaction.SourceAccount
-		destinationAccount := transaction.DestinationAccount
-
-		createdTransaction, err := makeTransactionSafely(
-			transaction.Id,
-			transaction.Amount,
-			transaction.TransactionType,
-			sourceAccount,
-			destinationAccount,
-		)
+		sourceAccount, err := accountRepository.GetByID(ctx, transaction.SourceAccount.Id)
 		if err != nil {
+			return fmt.Errorf("failed to get source account: %w", err)
+		}
+		if sourceAccount == nil {
+			return ErrAccountNotFound
+		}
+		destinationAccount, err := accountRepository.GetByID(ctx, transaction.DestinationAccount.Id)
+		if err != nil {
+			return fmt.Errorf("failed to get destination account: %w", err)
+		}
+		if destinationAccount == nil {
+			return ErrAccountNotFound
+		}
+
+		if err := makeTransactionSafely(transaction, sourceAccount, destinationAccount); err != nil {
 			return fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
 		}
-		*transaction = createdTransaction
 
 		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
 			return fmt.Errorf("failed to update source account: %w", err)
@@ -105,26 +108,24 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 }
 
 func makeTransactionSafely(
-	id string,
-	amount int64,
-	transactionType domain.TransactionType,
+	transaction *domain.Transaction,
 	sourceAccount *domain.Account,
 	destinationAccount *domain.Account,
-) (transaction domain.Transaction, err error) {
+) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("%v", recovered)
 		}
 	}()
 
-	transaction = domain.MakeTransaction(
-		id,
-		amount,
-		transactionType,
+	*transaction = domain.MakeTransaction(
+		transaction.Id,
+		transaction.Amount,
+		transaction.TransactionType,
 		sourceAccount,
 		destinationAccount,
 	)
-	return transaction, nil
+	return nil
 }
 
 func commitTransactionSafely(transaction *domain.Transaction) (err error) {
@@ -143,7 +144,11 @@ func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Tr
 		return nil, fmt.Errorf("%w: transaction id must be a valid UUID", ErrInvalidTransaction)
 	}
 
-	transaction, err := s.transactionRepository.GetByID(ctx, id)
+	transaction, err := s.transactionRepository.GetByID(ctx, id,
+		repositories.Join[models.TransactionModel]("SourceAccount"),
+		repositories.Join[models.TransactionModel]("SourceAccount.Holder"),
+		repositories.Join[models.TransactionModel]("DestinationAccount"),
+		repositories.Join[models.TransactionModel]("DestinationAccount.Holder"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction by id: %w", err)
 	}

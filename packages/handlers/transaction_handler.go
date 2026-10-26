@@ -40,21 +40,16 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	sourceAccount, err := getAccountById(c, log, h.accountService, transactionPayload.SourceAccountId)
-	if err != nil {
-		return
-	}
-	destinationAccount, err := getAccountById(c, log, h.accountService, transactionPayload.DestinationAccountId)
-	if err != nil {
-		return
-	}
-
 	transaction := &domain.Transaction{
-		Amount:             transactionPayload.Amount,
-		Status:             domain.PENDING,
-		TransactionType:    transactionPayload.TransactionType,
-		SourceAccount:      sourceAccount,
-		DestinationAccount: destinationAccount,
+		Amount:          transactionPayload.Amount,
+		Status:          domain.PENDING,
+		TransactionType: transactionPayload.TransactionType,
+		SourceAccount: &domain.Account{
+			Id: transactionPayload.SourceAccountId,
+		},
+		DestinationAccount: &domain.Account{
+			Id: transactionPayload.DestinationAccountId,
+		},
 	}
 
 	createdTransaction, err := h.transactionService.Create(context, transaction)
@@ -114,24 +109,4 @@ func (h *TransactionHandler) GetById(c *gin.Context) {
 	}
 
 	encodeJSONResponse(c, http.StatusOK, transaction)
-}
-
-func getAccountById(c *gin.Context, log logger.ContextLogger, accountService *services.AccountService, accountId string) (*domain.Account, error) {
-	account, err := accountService.GetById(c.Request.Context(), accountId)
-	if err != nil {
-		log.Error(err)
-		if errors.Is(err, services.ErrInvalidAccount) {
-			writeBadRequest(c, err)
-			return nil, err
-		}
-		if errors.Is(err, services.ErrAccountNotFound) {
-			writeNotFound(c, err)
-			return nil, err
-		}
-
-		writeInternalServerError(c, err)
-		return nil, err
-	}
-
-	return account, nil
 }

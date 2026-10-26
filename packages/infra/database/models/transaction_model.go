@@ -4,11 +4,13 @@ import "github.com/AD-Tech-Projects/Ledger/packages/domain"
 
 type TransactionModel struct {
 	BaseModel
-	Amount               int64  `gorm:"not null"`
-	Status               string `gorm:"not null"`
-	TransactionType      string `gorm:"not null"`
-	SourceAccountID      string `gorm:"type:uuid;not null;index"`
-	DestinationAccountID string `gorm:"type:uuid;not null;index"`
+	Amount               int64         `gorm:"not null"`
+	Status               string        `gorm:"not null"`
+	TransactionType      string        `gorm:"not null"`
+	SourceAccountID      string        `gorm:"type:uuid;not null;index"`
+	SourceAccount        *AccountModel `gorm:"foreignKey:SourceAccountID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	DestinationAccountID string        `gorm:"type:uuid;not null;index"`
+	DestinationAccount   *AccountModel `gorm:"foreignKey:DestinationAccountID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 }
 
 func (TransactionModel) TableName() string {
@@ -21,9 +23,17 @@ func TransactionToDomain(m *TransactionModel) *domain.Transaction {
 		Amount:             m.Amount,
 		Status:             domain.TransactionStatus(m.Status),
 		TransactionType:    domain.TransactionType(m.TransactionType),
-		SourceAccount:      &domain.Account{Id: m.SourceAccountID},
-		DestinationAccount: &domain.Account{Id: m.DestinationAccountID},
+		SourceAccount:      transactionAccountToDomain(m.SourceAccount, m.SourceAccountID),
+		DestinationAccount: transactionAccountToDomain(m.DestinationAccount, m.DestinationAccountID),
 	}
+}
+
+func transactionAccountToDomain(m *AccountModel, id string) *domain.Account {
+	if m == nil {
+		return &domain.Account{Id: id}
+	}
+
+	return AccountToDomain(m)
 }
 
 func TransactionFromDomain(d *domain.Transaction) *TransactionModel {

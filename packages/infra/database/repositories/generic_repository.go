@@ -42,7 +42,6 @@ func (r *GormRepository[M, E]) Create(ctx context.Context, domainEntity *E) erro
 		return err
 	}
 
-	*domainEntity = *r.toDomain(model)
 	return nil
 }
 
