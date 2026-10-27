@@ -69,10 +69,18 @@ func (t *Transaction) Commit() {
 
 	switch t.TransactionType {
 	case DEPOSIT:
+		if err := t.SourceAccount.validateHoldBalance(t.Amount); err != nil {
+			panic(err)
+		}
+
 		t.DestinationAccount.increaseHoldBalance(t.Amount)
 		t.SourceAccount.decreaseHoldBalance(t.Amount)
 		t.DestinationAccount.moveHoldBalanceToFree(t.Amount)
 	case WITHDRAWAL:
+		if err := t.DestinationAccount.validateHoldBalance(t.Amount); err != nil {
+			panic(err)
+		}
+
 		t.SourceAccount.increaseHoldBalance(t.Amount)
 		t.DestinationAccount.decreaseHoldBalance(t.Amount)
 		t.SourceAccount.moveHoldBalanceToFree(t.Amount)

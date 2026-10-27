@@ -96,6 +96,79 @@ func TestTransactionRollback(t *testing.T) {
 	}
 }
 
+func TestDepositCommitDoesNotPartiallyTransferOnError(t *testing.T) {
+	companyHolder := newCompanyAccountHolder("1", "12345678000195")
+	personHolder := newIndividualAccountHolder("2", "123456789")
+
+	companyAccount := createAccount("1", 10000, companyHolder)
+	personAccount := createAccount("2", 0, personHolder)
+
+	transaction := MakeTransaction(
+		"1",
+		5000,
+		DEPOSIT,
+		&companyAccount,
+		&personAccount,
+	)
+	transaction.DestinationAccount = nil
+
+	assertCommitPanics(t, &transaction)
+
+	if companyAccount.FreeBalance != 5000 || companyAccount.HoldBalance != 5000 {
+		t.Fatalf(
+			"expected source account balance to remain held, got free balance=%d, hold balance=%d",
+			companyAccount.FreeBalance,
+			companyAccount.HoldBalance,
+		)
+	}
+	if personAccount.FreeBalance != 0 || personAccount.HoldBalance != 0 {
+		t.Fatalf(
+			"expected destination account to remain unchanged, got free balance=%d, hold balance=%d",
+			personAccount.FreeBalance,
+			personAccount.HoldBalance,
+		)
+	}
+}
+
+func TestWithdrawalCommitDoesNotPartiallyTransferOnError(t *testing.T) {
+	companyHolder := newCompanyAccountHolder("1", "12345678000195")
+	personHolder := newIndividualAccountHolder("2", "123456789")
+
+	companyAccount := createAccount("1", 0, companyHolder)
+	personAccount := createAccount("2", 10000, personHolder)
+
+	transaction := MakeTransaction(
+		"1",
+		5000,
+		WITHDRAWAL,
+		&companyAccount,
+		&personAccount,
+	)
+	transaction.SourceAccount = nil
+
+	assertCommitPanics(t, &transaction)
+
+	if personAccount.FreeBalance != 5000 || personAccount.HoldBalance != 5000 {
+		t.Fatalf(
+			"expected destination account balance to remain held, got free balance=%d, hold balance=%d",
+			personAccount.FreeBalance,
+			personAccount.HoldBalance,
+		)
+	}
+}
+
+func assertCommitPanics(t *testing.T, transaction *Transaction) {
+	t.Helper()
+
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected transaction commit to panic")
+		}
+	}()
+
+	transaction.Commit()
+}
+
 func assertTransactionCreationPanics(t *testing.T, createTransaction func()) {
 	t.Helper()
 
