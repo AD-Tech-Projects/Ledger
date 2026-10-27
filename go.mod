@@ -11,7 +11,7 @@ exclude google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787
 // ANCHOR - direct dependencies
 require (
 	ariga.io/atlas-provider-gorm v0.6.1
-	github.com/AD-Tech-Projects/Go-Libs v1.0.1
+	github.com/AD-Tech-Projects/Go-Libs v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
