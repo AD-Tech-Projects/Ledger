@@ -23,8 +23,9 @@ type Wallet struct {
 type WalletType string
 
 const (
-	WALLET_CHECKING WalletType = "CHECKING"
-	WALLET_SAVINGS  WalletType = "SAVINGS"
+	WALLET_CHECKING   WalletType = "CHECKING"
+	WALLET_SAVINGS    WalletType = "SAVINGS"
+	WALLET_INVESTMENT WalletType = "INVESTMENT"
 )
 
 type WalletStatus string
