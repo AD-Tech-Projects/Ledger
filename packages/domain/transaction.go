@@ -19,11 +19,11 @@ type Transaction struct {
 	AssetID string
 	Asset   *Asset
 
-	SourceAccountID *string
-	SourceAccount   *Account
+	SourceWalletID *string
+	SourceWallet   *Wallet
 
-	DestinationAccountID *string
-	DestinationAccount   *Account
+	DestinationWalletID *string
+	DestinationWallet   *Wallet
 
 	// NOTE - identifier for the operation that originated this transaction
 	ReferenceID *string
@@ -69,32 +69,32 @@ func MakeTransaction(
 	id string,
 	amount int64,
 	transactionType TransactionType,
-	sourceAccount *Account,
-	destinationAccount *Account,
+	sourceWallet *Wallet,
+	destinationWallet *Wallet,
 ) Transaction {
 	if err := validateTransaction(
 		amount,
 		transactionType,
-		sourceAccount,
-		destinationAccount); err != nil {
+		sourceWallet,
+		destinationWallet); err != nil {
 		panic(err)
 	}
 
 	switch transactionType {
 	case TRANSACTION_DEPOSIT:
-		sourceAccount.moveFreeBalanceToHold(amount)
+		sourceWallet.moveFreeBalanceToHold(amount)
 	case TRANSACTION_WITHDRAWAL:
-		destinationAccount.moveFreeBalanceToHold(amount)
+		destinationWallet.moveFreeBalanceToHold(amount)
 		// TODO - adiconar cases para os outros tipos de transações
 	}
 
 	return Transaction{
-		ID:                 id,
-		Amount:             amount,
-		Status:             TRANSACTION_PENDING,
-		Type:               transactionType,
-		SourceAccount:      sourceAccount,
-		DestinationAccount: destinationAccount,
+		ID:                id,
+		Amount:            amount,
+		Status:            TRANSACTION_PENDING,
+		Type:              transactionType,
+		SourceWallet:      sourceWallet,
+		DestinationWallet: destinationWallet,
 	}
 }
 
@@ -103,21 +103,21 @@ func (t *Transaction) Commit() {
 
 	switch t.Type {
 	case TRANSACTION_DEPOSIT:
-		if err := t.SourceAccount.validateHoldBalance(t.Amount); err != nil {
+		if err := t.SourceWallet.validateHoldBalance(t.Amount); err != nil {
 			panic(err)
 		}
 
-		t.DestinationAccount.increaseHoldBalance(t.Amount)
-		t.SourceAccount.decreaseHoldBalance(t.Amount)
-		t.DestinationAccount.moveHoldBalanceToFree(t.Amount)
+		t.DestinationWallet.increaseHoldBalance(t.Amount)
+		t.SourceWallet.decreaseHoldBalance(t.Amount)
+		t.DestinationWallet.moveHoldBalanceToFree(t.Amount)
 	case TRANSACTION_WITHDRAWAL:
-		if err := t.DestinationAccount.validateHoldBalance(t.Amount); err != nil {
+		if err := t.DestinationWallet.validateHoldBalance(t.Amount); err != nil {
 			panic(err)
 		}
 
-		t.SourceAccount.increaseHoldBalance(t.Amount)
-		t.DestinationAccount.decreaseHoldBalance(t.Amount)
-		t.SourceAccount.moveHoldBalanceToFree(t.Amount)
+		t.SourceWallet.increaseHoldBalance(t.Amount)
+		t.DestinationWallet.decreaseHoldBalance(t.Amount)
+		t.SourceWallet.moveHoldBalanceToFree(t.Amount)
 
 		// TODO - adiconar cases para os outros tipos de transações
 	}

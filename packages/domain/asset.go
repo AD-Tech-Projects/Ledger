@@ -1,7 +1,5 @@
 package domain
 
-import "time"
-
 type Asset struct {
 	ID string
 
@@ -12,9 +10,6 @@ type Asset struct {
 	Code AssetCode
 	// NOTE - number of decimal places for the asset, such as 2 for USD or 8 for BTC
 	DecimalPlaces uint8
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 type AssetType string
