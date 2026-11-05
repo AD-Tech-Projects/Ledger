@@ -14,7 +14,7 @@ func (AccountHolderModel) TableName() string {
 
 func AccountHolderToDomain(m *AccountHolderModel) *domain.AccountHolder {
 	return &domain.AccountHolder{
-		Id:               m.ID,
+		ID:               m.ID,
 		UniqueIdentifier: m.UniqueIdentifier,
 		HolderType:       domain.HolderType(m.HolderType),
 	}
@@ -22,7 +22,7 @@ func AccountHolderToDomain(m *AccountHolderModel) *domain.AccountHolder {
 
 func AccountHolderFromDomain(d *domain.AccountHolder) *AccountHolderModel {
 	return &AccountHolderModel{
-		BaseModel:        BaseModel{ID: d.Id},
+		BaseModel:        BaseModel{ID: d.ID},
 		UniqueIdentifier: d.UniqueIdentifier,
 		HolderType:       string(d.HolderType),
 	}

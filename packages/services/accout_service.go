@@ -49,8 +49,8 @@ func (s *AccountService) Create(ctx context.Context, account *domain.Account) (*
 		return nil, fmt.Errorf("%w: holder id must be a valid UUID", ErrInvalidAccount)
 	}
 
-	if account.Id == "" {
-		account.Id = uuid.New().String()
+	if account.ID == "" {
+		account.ID = uuid.New().String()
 	}
 
 	account.FreeBalance = 0

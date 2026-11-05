@@ -37,10 +37,10 @@ func (s *TransactionService) Create(ctx context.Context, amount int64, transacti
 		Status:          domain.PENDING,
 		TransactionType: transactionType,
 		SourceAccount: &domain.Account{
-			Id: sourceAccountId,
+			ID: sourceAccountId,
 		},
 		DestinationAccount: &domain.Account{
-			Id: destinationAccountId,
+			ID: destinationAccountId,
 		},
 	}
 
@@ -50,15 +50,15 @@ func (s *TransactionService) Create(ctx context.Context, amount int64, transacti
 	if transaction.SourceAccount == nil || transaction.DestinationAccount == nil {
 		return nil, fmt.Errorf("%w: source and destination accounts are required", ErrInvalidTransaction)
 	}
-	if _, err := uuid.Parse(transaction.SourceAccount.Id); err != nil {
+	if _, err := uuid.Parse(transaction.SourceAccount.ID); err != nil {
 		return nil, fmt.Errorf("%w: source account id must be a valid UUID", ErrInvalidTransaction)
 	}
-	if _, err := uuid.Parse(transaction.DestinationAccount.Id); err != nil {
+	if _, err := uuid.Parse(transaction.DestinationAccount.ID); err != nil {
 		return nil, fmt.Errorf("%w: destination account id must be a valid UUID", ErrInvalidTransaction)
 	}
 
-	if transaction.Id == "" {
-		transaction.Id = uuid.NewString()
+	if transaction.ID == "" {
+		transaction.ID = uuid.NewString()
 	}
 
 	var transactionFailure error
@@ -66,14 +66,14 @@ func (s *TransactionService) Create(ctx context.Context, amount int64, transacti
 		accountRepository := s.accountRepository.WithDB(tx)
 		transactionRepository := s.transactionRepository.WithDB(tx)
 
-		sourceAccount, err := accountRepository.GetByID(ctx, transaction.SourceAccount.Id)
+		sourceAccount, err := accountRepository.GetByID(ctx, transaction.SourceAccount.ID)
 		if err != nil {
 			return fmt.Errorf("failed to get source account: %w", err)
 		}
 		if sourceAccount == nil {
 			return ErrAccountNotFound
 		}
-		destinationAccount, err := accountRepository.GetByID(ctx, transaction.DestinationAccount.Id)
+		destinationAccount, err := accountRepository.GetByID(ctx, transaction.DestinationAccount.ID)
 		if err != nil {
 			return fmt.Errorf("failed to get destination account: %w", err)
 		}
@@ -131,7 +131,7 @@ func (s *TransactionService) persistFailedTransaction(
 	ctx context.Context,
 	transaction *domain.Transaction,
 ) error {
-	existingTransaction, err := s.transactionRepository.GetByID(ctx, transaction.Id)
+	existingTransaction, err := s.transactionRepository.GetByID(ctx, transaction.ID)
 	if err != nil {
 		return fmt.Errorf("failed to find transaction for failure update: %w", err)
 	}
@@ -162,7 +162,7 @@ func makeTransactionSafely(
 	}()
 
 	*transaction = domain.MakeTransaction(
-		transaction.Id,
+		transaction.ID,
 		transaction.Amount,
 		transaction.TransactionType,
 		sourceAccount,

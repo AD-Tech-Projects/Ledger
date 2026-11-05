@@ -15,7 +15,7 @@ func validateTransaction(
 		return &transactionError{message: "Transaction amount must be greater than zero", operation: transactionType}
 	}
 
-	if sourceAccount.Id == destinationAccount.Id {
+	if sourceAccount.ID == destinationAccount.ID {
 		return &transactionError{message: "Source and destination accounts cannot be the same", operation: transactionType}
 	}
 	if sourceAccount.Currency != destinationAccount.Currency {

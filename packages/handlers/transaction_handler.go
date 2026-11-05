@@ -62,15 +62,15 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 func (h *TransactionHandler) List(c *gin.Context) {
 	log := logger.WithContext("TransactionHandler.list")
 	filter := &domain.Transaction{
-		Id:              c.Query("id"),
+		ID:              c.Query("id"),
 		Status:          domain.TransactionStatus(c.Query("status")),
 		TransactionType: domain.TransactionType(c.Query("transactionType")),
 	}
 	if sourceAccountID := c.Query("sourceAccountId"); sourceAccountID != "" {
-		filter.SourceAccount = &domain.Account{Id: sourceAccountID}
+		filter.SourceAccount = &domain.Account{ID: sourceAccountID}
 	}
 	if destinationAccountID := c.Query("destinationAccountId"); destinationAccountID != "" {
-		filter.DestinationAccount = &domain.Account{Id: destinationAccountID}
+		filter.DestinationAccount = &domain.Account{ID: destinationAccountID}
 	}
 	transactions, err := h.transactionService.GetAll(c.Request.Context(), filter)
 	if err != nil {

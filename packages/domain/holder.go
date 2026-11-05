@@ -2,7 +2,7 @@ package domain
 
 type AccountHolder struct {
 	// database unique identifier for the holder
-	Id string
+	ID string
 	// unique document identifier for the holder, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
 	UniqueIdentifier string
 	HolderType       HolderType
@@ -17,7 +17,7 @@ const (
 
 func newIndividualAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
-		Id:               id,
+		ID:               id,
 		UniqueIdentifier: document,
 		HolderType:       INDIVIDUAL,
 	}
@@ -25,7 +25,7 @@ func newIndividualAccountHolder(id string, document string) AccountHolder {
 
 func newCompanyAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
-		Id:               id,
+		ID:               id,
 		UniqueIdentifier: document,
 		HolderType:       COMPANY,
 	}

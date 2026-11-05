@@ -65,7 +65,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		Status:      body.Account.Status,
 		AccountType: body.Account.AccountType,
 		Currency:    body.Account.Currency,
-		HolderId:    createdHolder.Id,
+		HolderId:    createdHolder.ID,
 	}
 
 	createdAccount, err := h.accountService.Create(context, &account)
@@ -79,7 +79,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		return
 	}
 
-	foundAccount, err := h.accountService.GetById(context, createdAccount.Id)
+	foundAccount, err := h.accountService.GetById(context, createdAccount.ID)
 	if err != nil {
 		log.Error(err)
 		writeInternalServerError(c, err)
@@ -92,7 +92,7 @@ func (h *AccountHandler) Create(c *gin.Context) {
 func (h *AccountHandler) List(c *gin.Context) {
 	log := logger.WithContext("AccountHandler.list")
 	filter := &domain.Account{
-		Id:          c.Query("id"),
+		ID:          c.Query("id"),
 		Status:      domain.AccountStatus(c.Query("status")),
 		AccountType: domain.AccountType(c.Query("accountType")),
 		Currency:    domain.AccountCurrency(c.Query("currency")),

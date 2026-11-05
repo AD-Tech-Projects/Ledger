@@ -22,7 +22,7 @@ func (AccountModel) TableName() string {
 
 func AccountToDomain(m *AccountModel) *domain.Account {
 	return &domain.Account{
-		Id:              m.ID,
+		ID:              m.ID,
 		Status:          domain.AccountStatus(m.Status),
 		AccountType:     domain.AccountType(m.AccountType),
 		Currency:        domain.AccountCurrency(m.Currency),
@@ -44,7 +44,7 @@ func accountHolderToDomain(m *AccountHolderModel) *domain.AccountHolder {
 
 func AccountFromDomain(d *domain.Account) *AccountModel {
 	return &AccountModel{
-		BaseModel:       BaseModel{ID: d.Id},
+		BaseModel:       BaseModel{ID: d.ID},
 		Status:          string(d.Status),
 		AccountType:     string(d.AccountType),
 		Currency:        string(d.Currency),

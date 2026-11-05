@@ -28,8 +28,8 @@ func (s *AccountHolderService) Create(ctx context.Context, holder *domain.Accoun
 		return nil, fmt.Errorf("account holder is required")
 	}
 
-	if holder.Id == "" {
-		holder.Id = uuid.NewString()
+	if holder.ID == "" {
+		holder.ID = uuid.NewString()
 	}
 
 	if err := s.accountHolderRepository.Create(ctx, holder); err != nil {

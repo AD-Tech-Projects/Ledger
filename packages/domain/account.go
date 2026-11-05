@@ -1,7 +1,7 @@
 package domain
 
 type Account struct {
-	Id          string
+	ID          string
 	Status      AccountStatus
 	AccountType AccountType
 	Currency    AccountCurrency
@@ -45,14 +45,14 @@ func NewAccount(
 	holder *AccountHolder,
 ) Account {
 	return Account{
-		Id:              id,
+		ID:              id,
 		Status:          status,
 		AccountType:     accountType,
 		Currency:        currency,
 		FreeBalance:     balance,
 		ReservedBalance: 0,
 		HoldBalance:     0,
-		HolderId:        holder.Id,
+		HolderId:        holder.ID,
 		Holder:          nil,
 	}
 }

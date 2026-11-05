@@ -19,7 +19,7 @@ func (TransactionModel) TableName() string {
 
 func TransactionToDomain(m *TransactionModel) *domain.Transaction {
 	return &domain.Transaction{
-		Id:                 m.ID,
+		ID:                 m.ID,
 		Amount:             m.Amount,
 		Status:             domain.TransactionStatus(m.Status),
 		TransactionType:    domain.TransactionType(m.TransactionType),
@@ -30,7 +30,7 @@ func TransactionToDomain(m *TransactionModel) *domain.Transaction {
 
 func transactionAccountToDomain(m *AccountModel, id string) *domain.Account {
 	if m == nil {
-		return &domain.Account{Id: id}
+		return &domain.Account{ID: id}
 	}
 
 	return AccountToDomain(m)
@@ -39,14 +39,14 @@ func transactionAccountToDomain(m *AccountModel, id string) *domain.Account {
 func TransactionFromDomain(d *domain.Transaction) *TransactionModel {
 	var sourceAccountID, destinationAccountID string
 	if d.SourceAccount != nil {
-		sourceAccountID = d.SourceAccount.Id
+		sourceAccountID = d.SourceAccount.ID
 	}
 	if d.DestinationAccount != nil {
-		destinationAccountID = d.DestinationAccount.Id
+		destinationAccountID = d.DestinationAccount.ID
 	}
 
 	return &TransactionModel{
-		BaseModel:            BaseModel{ID: d.Id},
+		BaseModel:            BaseModel{ID: d.ID},
 		Amount:               d.Amount,
 		Status:               string(d.Status),
 		TransactionType:      string(d.TransactionType),

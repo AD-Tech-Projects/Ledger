@@ -5,7 +5,7 @@ import (
 )
 
 type Transaction struct {
-	Id                 string
+	ID                 string
 	Amount             int64
 	Status             TransactionStatus
 	TransactionType    TransactionType
@@ -55,7 +55,7 @@ func MakeTransaction(
 	}
 
 	return Transaction{
-		Id:                 id,
+		ID:                 id,
 		Amount:             amount,
 		Status:             PENDING,
 		TransactionType:    transactionType,
