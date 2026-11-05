@@ -13,14 +13,17 @@ type HandlerResolver struct {
 }
 
 func NewHandlerResolver(db *gorm.DB) *HandlerResolver {
+	// * Repositories
 	holderRepository := repositories.NewRepository(db, models.AccountHolderToDomain, models.AccountHolderFromDomain)
 	accountRepository := repositories.NewRepository(db, models.AccountToDomain, models.AccountFromDomain)
 	transactionRepository := repositories.NewRepository(db, models.TransactionToDomain, models.TransactionFromDomain)
 
+	// ? Services
 	holderService := services.NewAccountHolderService(holderRepository)
 	accountService := services.NewAccountService(accountRepository)
 	transactionService := services.NewTransactionService(transactionRepository, accountRepository)
 
+	// ! Handlers
 	accountHandler := NewAccountHandler(holderService, accountService)
 	transactionHandler := NewTransactionHandler(transactionService, accountService)
 

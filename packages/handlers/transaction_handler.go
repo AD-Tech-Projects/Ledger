@@ -40,19 +40,11 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	transaction := &domain.Transaction{
-		Amount:          transactionPayload.Amount,
-		Status:          domain.PENDING,
-		TransactionType: transactionPayload.TransactionType,
-		SourceAccount: &domain.Account{
-			Id: transactionPayload.SourceAccountId,
-		},
-		DestinationAccount: &domain.Account{
-			Id: transactionPayload.DestinationAccountId,
-		},
-	}
-
-	createdTransaction, err := h.transactionService.Create(context, transaction)
+	createdTransaction, err := h.transactionService.Create(context,
+		transactionPayload.Amount,
+		transactionPayload.TransactionType,
+		transactionPayload.SourceAccountId,
+		transactionPayload.DestinationAccountId)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, services.ErrInvalidTransaction) {

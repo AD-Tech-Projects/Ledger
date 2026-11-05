@@ -31,15 +31,25 @@ func NewTransactionService(
 	}
 }
 
-func (s *TransactionService) Create(ctx context.Context, transaction *domain.Transaction) (*domain.Transaction, error) {
+func (s *TransactionService) Create(ctx context.Context, amount int64, transactionType domain.TransactionType, sourceAccountId string, destinationAccountId string) (*domain.Transaction, error) {
+	transaction := &domain.Transaction{
+		Amount:          amount,
+		Status:          domain.PENDING,
+		TransactionType: transactionType,
+		SourceAccount: &domain.Account{
+			Id: sourceAccountId,
+		},
+		DestinationAccount: &domain.Account{
+			Id: destinationAccountId,
+		},
+	}
+
 	if transaction == nil {
 		return nil, fmt.Errorf("%w: transaction is required", ErrInvalidTransaction)
 	}
-
 	if transaction.SourceAccount == nil || transaction.DestinationAccount == nil {
 		return nil, fmt.Errorf("%w: source and destination accounts are required", ErrInvalidTransaction)
 	}
-
 	if _, err := uuid.Parse(transaction.SourceAccount.Id); err != nil {
 		return nil, fmt.Errorf("%w: source account id must be a valid UUID", ErrInvalidTransaction)
 	}
@@ -51,6 +61,7 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		transaction.Id = uuid.NewString()
 	}
 
+	var transactionFailure error
 	err := s.transactionRepository.Transaction(ctx, func(tx *gorm.DB) error {
 		accountRepository := s.accountRepository.WithDB(tx)
 		transactionRepository := s.transactionRepository.WithDB(tx)
@@ -71,7 +82,9 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		}
 
 		if err := makeTransactionSafely(transaction, sourceAccount, destinationAccount); err != nil {
-			return fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+			transaction.Status = domain.FAILED
+			transactionFailure = fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+			return transactionFailure
 		}
 
 		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
@@ -85,7 +98,9 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		}
 
 		if err := commitTransactionSafely(transaction); err != nil {
-			return fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+			transaction.Status = domain.FAILED
+			transactionFailure = fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+			return transactionFailure
 		}
 
 		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
@@ -101,10 +116,38 @@ func (s *TransactionService) Create(ctx context.Context, transaction *domain.Tra
 		return nil
 	})
 	if err != nil {
+		if transactionFailure != nil {
+			if persistErr := s.persistFailedTransaction(ctx, transaction); persistErr != nil {
+				return nil, fmt.Errorf("%w; failed to persist failed transaction: %v", err, persistErr)
+			}
+		}
 		return nil, err
 	}
 
 	return transaction, nil
+}
+
+func (s *TransactionService) persistFailedTransaction(
+	ctx context.Context,
+	transaction *domain.Transaction,
+) error {
+	existingTransaction, err := s.transactionRepository.GetByID(ctx, transaction.Id)
+	if err != nil {
+		return fmt.Errorf("failed to find transaction for failure update: %w", err)
+	}
+
+	if existingTransaction == nil {
+		if err := s.transactionRepository.Create(ctx, transaction); err != nil {
+			return fmt.Errorf("failed to create failed transaction: %w", err)
+		}
+		return nil
+	}
+
+	if err := s.transactionRepository.Update(ctx, transaction); err != nil {
+		return fmt.Errorf("failed to update failed transaction: %w", err)
+	}
+
+	return nil
 }
 
 func makeTransactionSafely(
