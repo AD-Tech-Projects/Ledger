@@ -1,26 +1,25 @@
 package domain
 
+// TODO - mudar nome para Wallet, Account sera a entidade que representa a conta do cliente (e dados bancarios)
 type Account struct {
-	ID          string
-	Status      AccountStatus
-	AccountType AccountType
-	Currency    AccountCurrency
-	// store the balance in the smallest unit of the currency (e.g., cents for USD)
+	ID string
+
+	Type    AccountType
+	Status  AccountStatus
+	Version int64
+
+	// NOTE - store the balance in the smallest unit of the currency (e.g., cents for USD)
 	FreeBalance     int64
 	ReservedBalance int64
-	HoldBalance     int64
-	// database unique identifier for the holder of the account
-	HolderId string
+	// NOTE - balance that is on hold, such as for pending transactions or disputes
+	HoldBalance int64
+
+	HolderID string
 	Holder   *AccountHolder
+
+	AssetID string
+	Asset   *Asset
 }
-
-type AccountCurrency string
-
-const (
-	USD AccountCurrency = "USD"
-	EUR AccountCurrency = "EUR"
-	BRL AccountCurrency = "BRL"
-)
 
 type AccountType string
 
@@ -40,19 +39,17 @@ func NewAccount(
 	id string,
 	status AccountStatus,
 	accountType AccountType,
-	currency AccountCurrency,
 	balance int64,
 	holder *AccountHolder,
 ) Account {
 	return Account{
 		ID:              id,
 		Status:          status,
-		AccountType:     accountType,
-		Currency:        currency,
+		Type:            accountType,
 		FreeBalance:     balance,
 		ReservedBalance: 0,
 		HoldBalance:     0,
-		HolderId:        holder.ID,
+		HolderID:        holder.ID,
 		Holder:          nil,
 	}
 }

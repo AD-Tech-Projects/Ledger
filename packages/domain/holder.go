@@ -1,25 +1,27 @@
 package domain
 
+// TODO - mudar nome para Holder
 type AccountHolder struct {
-	// database unique identifier for the holder
+	// NOTE - database unique identifier for the holder
 	ID string
-	// unique document identifier for the holder, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
+
+	Type HolderType
+	// NOTE - unique document identifier for the holder, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
 	UniqueIdentifier string
-	HolderType       HolderType
 }
 
 type HolderType string
 
 const (
-	INDIVIDUAL HolderType = "INDIVIDUAL"
-	COMPANY    HolderType = "COMPANY"
+	HOLDER_INDIVIDUAL HolderType = "INDIVIDUAL"
+	HOLDER_COMPANY    HolderType = "COMPANY"
 )
 
 func newIndividualAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
 		ID:               id,
 		UniqueIdentifier: document,
-		HolderType:       INDIVIDUAL,
+		Type:             HOLDER_INDIVIDUAL,
 	}
 }
 
@@ -27,6 +29,6 @@ func newCompanyAccountHolder(id string, document string) AccountHolder {
 	return AccountHolder{
 		ID:               id,
 		UniqueIdentifier: document,
-		HolderType:       COMPANY,
+		Type:             HOLDER_COMPANY,
 	}
 }
