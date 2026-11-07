@@ -1,9 +1,6 @@
 package domain
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 type Transaction struct {
 	ID        string
@@ -36,20 +33,20 @@ type Transaction struct {
 type TransactionType string
 
 const (
-	TRANSACTION_DEPOSIT    TransactionType = "DEPOSIT"
-	TRANSACTION_WITHDRAWAL TransactionType = "WITHDRAWAL"
-	TRANSACTION_TRANSFER   TransactionType = "TRANSFER"
-	TRANSACTION_REVERSAL   TransactionType = "REVERSAL"
+	TRANSACTION_DEPOSIT    TransactionType = "DEPOSIT"    // Deposit of funds into a wallet, typically from an external source
+	TRANSACTION_WITHDRAWAL TransactionType = "WITHDRAWAL" // Withdrawal of funds from a wallet, typically to an external destination
+	TRANSACTION_TRANSFER   TransactionType = "TRANSFER"   // Transfer of funds between two wallets within the system
+	TRANSACTION_REVERSAL   TransactionType = "REVERSAL"   // Reversal of a previous transaction, typically due to an error or dispute
 
-	TRANSACTION_YIELD    TransactionType = "YIELD"
-	TRANSACTION_FEE      TransactionType = "FEE"
-	TRANSACTION_PURCHASE TransactionType = "PURCHASE"
-	TRANSACTION_SALE     TransactionType = "SALE"
+	TRANSACTION_YIELD    TransactionType = "YIELD"    // Yield generated from investments or interest-bearing accounts
+	TRANSACTION_FEE      TransactionType = "FEE"      // Fee charged for a service or transaction
+	TRANSACTION_PURCHASE TransactionType = "PURCHASE" // Purchase of an asset or service, typically from an external source
+	TRANSACTION_SALE     TransactionType = "SALE"     // Sale of an asset or service, typically to an external destination
 
-	TRANSACTION_RESERVE TransactionType = "RESERVE"
-	TRANSACTION_RELEASE TransactionType = "RELEASE"
-	TRANSACTION_HOLD    TransactionType = "HOLD"
-	TRANSACTION_UNHOLD  TransactionType = "UNHOLD"
+	TRANSACTION_RESERVE TransactionType = "RESERVE" // Reserve of funds in a wallet, typically for a scheduled transaction or future obligation
+	TRANSACTION_RELEASE TransactionType = "RELEASE" // Release of reserved funds in a wallet, typically after a scheduled transaction or future obligation
+	TRANSACTION_HOLD    TransactionType = "HOLD"    // Hold of funds in a wallet, typically for a pending transaction or dispute
+	TRANSACTION_UNHOLD  TransactionType = "UNHOLD"  // Release of held funds in a wallet, typically after a pending transaction or dispute is resolved
 )
 
 type TransactionStatus string
@@ -59,69 +56,3 @@ const (
 	TRANSACTION_COMPLETED TransactionStatus = "COMPLETED"
 	TRANSACTION_FAILED    TransactionStatus = "FAILED"
 )
-
-func (e *transactionError) Error() string {
-	return fmt.Errorf("{%s}: %s", e.operation, e.message).Error()
-}
-
-// TODO - mover lógica para service
-func MakeTransaction(
-	id string,
-	amount int64,
-	transactionType TransactionType,
-	sourceWallet *Wallet,
-	destinationWallet *Wallet,
-) Transaction {
-	if err := validateTransaction(
-		amount,
-		transactionType,
-		sourceWallet,
-		destinationWallet); err != nil {
-		panic(err)
-	}
-
-	switch transactionType {
-	case TRANSACTION_DEPOSIT:
-		sourceWallet.moveFreeBalanceToHold(amount)
-	case TRANSACTION_WITHDRAWAL:
-		destinationWallet.moveFreeBalanceToHold(amount)
-		// TODO - adiconar cases para os outros tipos de transações
-	}
-
-	return Transaction{
-		ID:                id,
-		Amount:            amount,
-		Status:            TRANSACTION_PENDING,
-		Type:              transactionType,
-		SourceWallet:      sourceWallet,
-		DestinationWallet: destinationWallet,
-	}
-}
-
-func (t *Transaction) Commit() {
-	transactionStatus := TRANSACTION_FAILED
-
-	switch t.Type {
-	case TRANSACTION_DEPOSIT:
-		if err := t.SourceWallet.validateHoldBalance(t.Amount); err != nil {
-			panic(err)
-		}
-
-		t.DestinationWallet.increaseHoldBalance(t.Amount)
-		t.SourceWallet.decreaseHoldBalance(t.Amount)
-		t.DestinationWallet.moveHoldBalanceToFree(t.Amount)
-	case TRANSACTION_WITHDRAWAL:
-		if err := t.DestinationWallet.validateHoldBalance(t.Amount); err != nil {
-			panic(err)
-		}
-
-		t.SourceWallet.increaseHoldBalance(t.Amount)
-		t.DestinationWallet.decreaseHoldBalance(t.Amount)
-		t.SourceWallet.moveHoldBalanceToFree(t.Amount)
-
-		// TODO - adiconar cases para os outros tipos de transações
-	}
-	transactionStatus = TRANSACTION_COMPLETED
-
-	t.Status = transactionStatus
-}

@@ -16,19 +16,3 @@ const (
 	OWNER_INDIVIDUAL OwnerType = "INDIVIDUAL"
 	OWNER_COMPANY    OwnerType = "COMPANY"
 )
-
-func newIndividualAccountOwner(id string, document string) Owner {
-	return Owner{
-		ID:               id,
-		UniqueIdentifier: document,
-		Type:             OWNER_INDIVIDUAL,
-	}
-}
-
-func newCompanyAccountOwner(id string, document string) Owner {
-	return Owner{
-		ID:               id,
-		UniqueIdentifier: document,
-		Type:             OWNER_COMPANY,
-	}
-}

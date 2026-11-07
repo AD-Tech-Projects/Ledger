@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 type Wallet struct {
 	ID string
 
@@ -18,6 +20,9 @@ type Wallet struct {
 
 	AssetID string
 	Asset   *Asset
+
+	AccountID *string
+	Account   *Account
 }
 
 type WalletType string
@@ -26,6 +31,7 @@ const (
 	WALLET_CHECKING   WalletType = "CHECKING"
 	WALLET_SAVINGS    WalletType = "SAVINGS"
 	WALLET_INVESTMENT WalletType = "INVESTMENT"
+	WALLET_CRYPTO     WalletType = "CRYPTO"
 )
 
 type WalletStatus string
@@ -35,58 +41,74 @@ const (
 	WALLET_INACTIVE WalletStatus = "INACTIVE"
 )
 
-func (e *accountError) Error() string {
-	return e.message
+func (t WalletType) RequiresAccount() bool {
+	return t == WALLET_CHECKING || t == WALLET_SAVINGS
 }
 
-func NewAccount(
-	id string,
-	status WalletStatus,
-	walletType WalletType,
-	balance int64,
-	owner *Owner,
-) Wallet {
-	return Wallet{
-		ID:              id,
-		Status:          status,
-		Type:            walletType,
-		FreeBalance:     balance,
-		ReservedBalance: 0,
-		HoldBalance:     0,
-		OwnerID:         owner.ID,
-		Owner:           nil,
-	}
-}
-
-func (w *Wallet) moveFreeBalanceToHold(amount int64) {
-	err := w.validateFreeBalance(amount)
-	if err != nil {
-		panic(err)
+func (w *Wallet) MoveFreeBalanceToHold(amount int64) error {
+	if err := w.validateFreeBalance(amount); err != nil {
+		return err
 	}
 
 	w.FreeBalance -= amount
 	w.HoldBalance += amount
+	return nil
 }
 
-func (w *Wallet) increaseHoldBalance(amount int64) {
+func (w *Wallet) IncreaseHoldBalance(amount int64) error {
+	if err := validateAmount(amount); err != nil {
+		return err
+	}
+
 	w.HoldBalance += amount
+	return nil
 }
 
-func (w *Wallet) decreaseHoldBalance(amount int64) {
-	err := w.validateHoldBalance(amount)
-	if err != nil {
-		panic(err)
+func (w *Wallet) DecreaseHoldBalance(amount int64) error {
+	if err := w.validateHoldBalance(amount); err != nil {
+		return err
 	}
 
 	w.HoldBalance -= amount
+	return nil
 }
 
-func (w *Wallet) moveHoldBalanceToFree(amount int64) {
-	err := w.validateHoldBalance(amount)
-	if err != nil {
-		panic(err)
+func (w *Wallet) MoveHoldBalanceToFree(amount int64) error {
+	if err := w.validateHoldBalance(amount); err != nil {
+		return err
 	}
 
 	w.HoldBalance -= amount
 	w.FreeBalance += amount
+	return nil
+}
+
+func (w *Wallet) validateHoldBalance(amount int64) error {
+	if err := validateAmount(amount); err != nil {
+		return err
+	}
+	if w.HoldBalance < amount {
+		return errors.New("insufficient hold balance")
+	}
+
+	return nil
+}
+
+func (w *Wallet) validateFreeBalance(amount int64) error {
+	if err := validateAmount(amount); err != nil {
+		return err
+	}
+	if w.FreeBalance < amount {
+		return errors.New("insufficient free balance")
+	}
+
+	return nil
+}
+
+func validateAmount(amount int64) error {
+	if amount <= 0 {
+		return errors.New("amount must be greater than zero")
+	}
+
+	return nil
 }
