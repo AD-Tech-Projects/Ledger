@@ -50,12 +50,12 @@ func (r *GormRepository[M, E]) GetByID(
 	id string,
 	options ...QueryOption[M],
 ) (*E, error) {
-	var model M
 	query := r.db.WithContext(ctx)
 	for _, option := range options {
 		query = option(query)
 	}
 
+	var model M
 	err := query.Where(clause.Eq{
 		Column: clause.Column{
 			Table: clause.CurrentTable,
@@ -72,12 +72,11 @@ func (r *GormRepository[M, E]) GetByID(
 	return r.toDomain(&model), nil
 }
 
-func (r *GormRepository[M, E]) GetAll(
+func (r *GormRepository[M, E]) FindOne(
 	ctx context.Context,
 	filter *E,
 	options ...QueryOption[M],
-) ([]*E, error) {
-	var models []M
+) (*E, error) {
 	query := r.db.WithContext(ctx)
 	for _, option := range options {
 		query = option(query)
@@ -86,6 +85,31 @@ func (r *GormRepository[M, E]) GetAll(
 		query = query.Where(r.fromDomain(filter))
 	}
 
+	var model M
+	err := query.First(&model).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return r.toDomain(&model), nil
+}
+
+func (r *GormRepository[M, E]) FindAll(
+	ctx context.Context,
+	filter *E,
+	options ...QueryOption[M],
+) ([]*E, error) {
+	query := r.db.WithContext(ctx)
+	for _, option := range options {
+		query = option(query)
+	}
+	if filter != nil {
+		query = query.Where(r.fromDomain(filter))
+	}
+
+	var models []M
 	if err := query.Find(&models).Error; err != nil {
 		return nil, err
 	}
