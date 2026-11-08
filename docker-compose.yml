@@ -11,13 +11,13 @@ services:
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME:-db_ledger}
     ports:
       - 5432:5432
     networks:
       - default_network
     volumes:
-      - db_volume:/var/lib/postgresql/
+      - ledger_db_volume:/var/lib/postgresql/
 
   # Cache
   cache:
@@ -35,6 +35,6 @@ networks:
 
 # Volumes for Containers
 volumes:
-  db_volume:
-    name: db_volume
+  ledger_db_volume:
+    name: ledger_db_volume
     driver: local
