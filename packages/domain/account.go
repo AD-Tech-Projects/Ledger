@@ -10,13 +10,13 @@ type Account struct {
 	WalletID string
 	Wallet   *Wallet
 
-	Kind        AccountKind
-	CountryCode AccountCountryCode
+	Kind        AccountKind        // Kind defines whether the bank fields or the crypto fields are filled.
+	CountryCode AccountCountryCode // CountryCode is the jurisdiction of the account, which defines the available payment rails.
 
-	Currency        string
-	InstitutionName string
+	Currency        string // Currency is the ISO currency code of the bank account (e.g. BRL, USD).
+	InstitutionName string // InstitutionName is the name of the bank or financial institution.
 	BranchCode      string // BranchCode is the branch identifier used by the institution, when applicable.
-	AccountNumber   string
+	AccountNumber   string // AccountNumber is the account number at the institution.
 	RoutingCode     string // RoutingCode is the country-specific bank clearing or routing identifier.
 	IBAN            string // International bank account number, used for international bank transfers
 	BIC             string // International bank identifier code, used for international bank transfers (also known as SWIFT code)
@@ -31,16 +31,16 @@ type Account struct {
 type AccountKind string
 
 const (
-	ACCOUNT_BANK   AccountKind = "BANK"
-	ACCOUNT_CRYPTO AccountKind = "CRYPTO"
+	ACCOUNT_BANK   AccountKind = "BANK"   // Account at a bank or payment institution
+	ACCOUNT_CRYPTO AccountKind = "CRYPTO" // Address on a blockchain network
 )
 
 type AccountCountryCode string
 
 const (
-	COUNTRY_US AccountCountryCode = "US"
-	COUNTRY_BR AccountCountryCode = "BR"
-	COUNTRY_EU AccountCountryCode = "EU"
+	COUNTRY_US AccountCountryCode = "US" // United States
+	COUNTRY_BR AccountCountryCode = "BR" // Brazil
+	COUNTRY_EU AccountCountryCode = "EU" // European Union
 
 	// NOTE - unknown country code, used for accounts that do not have a specific country association, such as crypto accounts
 	COUNTRY_UNKNOWN AccountCountryCode = "UNKNOWN"

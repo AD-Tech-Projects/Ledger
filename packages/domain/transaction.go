@@ -6,19 +6,21 @@ type Transaction struct {
 	ID        string
 	CreatedAt time.Time
 
-	Amount      int64
+	Amount      int64 // Amount is always positive and expressed in the smallest unit of the asset.
 	Description string
 
 	Type        TransactionType
 	Status      TransactionStatus
-	CompletedAt *time.Time
+	CompletedAt *time.Time // CompletedAt is filled only when the transaction is successfully completed.
 
-	AssetID string
+	AssetID string // AssetID is the asset moved by the transaction; both wallets must hold it.
 	Asset   *Asset
 
+	// NOTE - nil when the operation has no source wallet (e.g. a deposit from outside the platform)
 	SourceWalletID *string
 	SourceWallet   *Wallet
 
+	// NOTE - nil when the operation has no destination wallet (e.g. a withdrawal to outside the platform)
 	DestinationWalletID *string
 	DestinationWallet   *Wallet
 
@@ -52,7 +54,7 @@ const (
 type TransactionStatus string
 
 const (
-	TRANSACTION_PENDING   TransactionStatus = "PENDING"
-	TRANSACTION_COMPLETED TransactionStatus = "COMPLETED"
-	TRANSACTION_FAILED    TransactionStatus = "FAILED"
+	TRANSACTION_PENDING   TransactionStatus = "PENDING"   // Created and still being processed
+	TRANSACTION_COMPLETED TransactionStatus = "COMPLETED" // Balances were updated successfully
+	TRANSACTION_FAILED    TransactionStatus = "FAILED"    // Rejected by a business rule; kept for history, no balance changed
 )

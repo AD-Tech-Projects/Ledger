@@ -13,6 +13,6 @@ type Owner struct {
 type OwnerType string
 
 const (
-	OWNER_INDIVIDUAL OwnerType = "INDIVIDUAL"
-	OWNER_COMPANY    OwnerType = "COMPANY"
+	OWNER_INDIVIDUAL OwnerType = "INDIVIDUAL" // Natural person, identified by CPF/SSN
+	OWNER_COMPANY    OwnerType = "COMPANY"    // Legal entity, identified by CNPJ/EIN
 )
