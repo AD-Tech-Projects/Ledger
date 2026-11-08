@@ -8,27 +8,29 @@ import (
 )
 
 type HandlerResolver struct {
-	Account     *AccountHandler
+	Wallet      *WalletHandler
 	Transaction *TransactionHandler
 }
 
 func NewHandlerResolver(db *gorm.DB) *HandlerResolver {
 	// * Repositories
-	holderRepository := repositories.NewRepository(db, models.AccountHolderToDomain, models.AccountHolderFromDomain)
-	accountRepository := repositories.NewRepository(db, models.AccountToDomain, models.AccountFromDomain)
+	assetRepository := repositories.NewRepository(db, models.AssetToDomain, models.AssetFromDomain)
+	ownerRepository := repositories.NewRepository(db, models.OwnerToDomain, models.OwnerFromDomain)
+	walletRepository := repositories.NewRepository(db, models.WalletToDomain, models.WalletFromDomain)
 	transactionRepository := repositories.NewRepository(db, models.TransactionToDomain, models.TransactionFromDomain)
 
 	// ? Services
-	holderService := services.NewAccountHolderService(holderRepository)
-	accountService := services.NewAccountService(accountRepository)
-	transactionService := services.NewTransactionService(transactionRepository, accountRepository)
+	assetService := services.NewAssetService(assetRepository)
+	ownerService := services.NewOwnerService(ownerRepository)
+	walletService := services.NewWalletService(walletRepository)
+	transactionService := services.NewTransactionService(transactionRepository, walletRepository)
 
 	// ! Handlers
-	accountHandler := NewAccountHandler(holderService, accountService)
-	transactionHandler := NewTransactionHandler(transactionService, accountService)
+	walletHandler := NewWalletHandler(ownerService, assetService, walletService)
+	transactionHandler := NewTransactionHandler(transactionService)
 
 	return &HandlerResolver{
-		Account:     accountHandler,
+		Wallet:      walletHandler,
 		Transaction: transactionHandler,
 	}
 }

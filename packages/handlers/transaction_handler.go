@@ -12,23 +12,20 @@ import (
 
 type TransactionHandler struct {
 	transactionService *services.TransactionService
-	accountService     *services.AccountService
 }
 
 func NewTransactionHandler(
-	transactionService *services.TransactionService,
-	accountService *services.AccountService) *TransactionHandler {
+	transactionService *services.TransactionService) *TransactionHandler {
 	return &TransactionHandler{
 		transactionService: transactionService,
-		accountService:     accountService,
 	}
 }
 
 type createTransactionRequestBody struct {
-	Amount               int64                  `json:"amount"`
-	TransactionType      domain.TransactionType `json:"transactionType"`
-	SourceAccountId      string                 `json:"sourceAccountId"`
-	DestinationAccountId string                 `json:"destinationAccountId"`
+	Amount              int64                  `json:"amount"`
+	TransactionType     domain.TransactionType `json:"transactionType"`
+	SourceWalletID      string                 `json:"sourceWalletId"`
+	DestinationWalletID string                 `json:"destinationWalletId"`
 }
 
 func (h *TransactionHandler) Create(c *gin.Context) {
@@ -43,8 +40,8 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 	createdTransaction, err := h.transactionService.Create(context,
 		transactionPayload.Amount,
 		transactionPayload.TransactionType,
-		transactionPayload.SourceAccountId,
-		transactionPayload.DestinationAccountId)
+		transactionPayload.SourceWalletID,
+		transactionPayload.DestinationWalletID)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, services.ErrInvalidTransaction) {
@@ -62,15 +59,15 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 func (h *TransactionHandler) List(c *gin.Context) {
 	log := logger.WithContext("TransactionHandler.list")
 	filter := &domain.Transaction{
-		ID:              c.Query("id"),
-		Status:          domain.TransactionStatus(c.Query("status")),
-		TransactionType: domain.TransactionType(c.Query("transactionType")),
+		ID:     c.Query("id"),
+		Status: domain.TransactionStatus(c.Query("status")),
+		Type:   domain.TransactionType(c.Query("transactionType")),
 	}
-	if sourceAccountID := c.Query("sourceAccountId"); sourceAccountID != "" {
-		filter.SourceAccount = &domain.Account{ID: sourceAccountID}
+	if sourceWalletID := c.Query("sourceWalletId"); sourceWalletID != "" {
+		filter.SourceWallet = &domain.Wallet{ID: sourceWalletID}
 	}
-	if destinationAccountID := c.Query("destinationAccountId"); destinationAccountID != "" {
-		filter.DestinationAccount = &domain.Account{ID: destinationAccountID}
+	if destinationWalletID := c.Query("destinationWalletId"); destinationWalletID != "" {
+		filter.DestinationWallet = &domain.Wallet{ID: destinationWalletID}
 	}
 	transactions, err := h.transactionService.GetAll(c.Request.Context(), filter)
 	if err != nil {

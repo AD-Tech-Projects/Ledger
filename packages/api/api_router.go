@@ -36,15 +36,14 @@ func NewRouter(handlers *handlers.HandlerResolver, log logger.ContextLogger) *gi
 
 	router.GET("/health", healthCheckHandler)
 
-	router.POST("/accounts", handlers.Account.Create)
-	router.GET("/accounts", handlers.Account.List)
-	router.GET("/accounts/:id", handlers.Account.GetById)
-	router.PATCH("/accounts/:id", handlers.Account.Update)
-	router.DELETE("/accounts/:id", handlers.Account.Delete)
+	router.GET("/wallets", handlers.Wallet.List)
+	router.POST("/wallet", handlers.Wallet.Create)
+	router.GET("/wallet/:id", handlers.Wallet.GetById)
+	router.DELETE("/wallet/:id", handlers.Wallet.Deactivate)
 
-	router.POST("/transactions", handlers.Transaction.Create)
 	router.GET("/transactions", handlers.Transaction.List)
-	router.GET("/transactions/:id", handlers.Transaction.GetById)
+	router.POST("/transaction", handlers.Transaction.Create)
+	router.GET("/transaction/:id", handlers.Transaction.GetById)
 
 	return router
 }
