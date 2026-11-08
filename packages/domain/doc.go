@@ -8,10 +8,12 @@
 //
 // # Relationships
 //
-//	Owner 1──N Wallet N──1 Asset 1──N AssetPrice (as base or quote asset)
-//	             │  └──0..1 Account 1──N AccountIdentifier
-//	             │
-//	             └── source/destination of ── Transaction 1──1 LedgerTransaction 1──N LedgerEntry N──1 LedgerAccount
+//	Owner       1──N    Wallet
+//	Owner       1──N    Account 1──N AccountIdentifier
+//	Account     0..1──N Wallet (a wallet may be linked to one external account)
+//	Asset       1──N    Wallet, AssetPrice (as base or quote asset)
+//	Wallet      0..1──N Transaction (as source or destination)
+//	Transaction 1──1    LedgerTransaction 1──N LedgerEntry N──1 LedgerAccount
 //
 // # Three different "accounts"
 //
@@ -20,7 +22,8 @@
 //   - [Wallet]: the owner's position (balances) in one asset inside the platform.
 //     Belongs to an owner and stores an operational projection of the balance.
 //   - [Account]: the owner's external account (bank account or blockchain address).
-//     Used to move funds into and out of the platform; stores no balance.
+//     Belongs to an owner, may serve many wallets and is used to move funds into and out of
+//     the platform; stores no balance.
 //   - [LedgerAccount]: an account of the accounting chart of accounts.
 //     Belongs to the system; its balance is computed from ledger entries.
 //
@@ -60,6 +63,8 @@
 // [Account] is the owner's financial account outside the platform: a bank account
 // (institution, branch, number, routing code, IBAN, BIC/SWIFT) or a crypto account
 // (network, address, memo). It is the origin of deposits and the destination of withdrawals.
+// It belongs to an [Owner] and may be linked to many of the owner's wallets; an owner may have
+// several accounts (they can be looked up by owner and currency).
 //
 // [AccountIdentifier] is an alias that addresses an [Account] on a specific payment rail
 // without its full bank details, such as a PIX key (CPF, CNPJ, phone, email or random key).

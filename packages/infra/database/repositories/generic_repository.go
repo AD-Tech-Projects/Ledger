@@ -122,9 +122,10 @@ func (r *GormRepository[M, E]) FindAll(
 	return entities, nil
 }
 
+// NOTE - domain entities do not carry the creation timestamp, so it must never be overwritten on updates
 func (r *GormRepository[M, E]) Update(ctx context.Context, domainEntity *E) error {
 	model := r.fromDomain(domainEntity)
-	return r.db.WithContext(ctx).Save(model).Error
+	return r.db.WithContext(ctx).Omit("created_at").Save(model).Error
 }
 
 func (r *GormRepository[M, E]) Delete(ctx context.Context, id string) error {

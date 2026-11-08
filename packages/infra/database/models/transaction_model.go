@@ -8,15 +8,16 @@ import (
 
 type TransactionModel struct {
 	BaseModel
-	Amount              int64             `gorm:"not null"`
+	Amount              int64             `gorm:"not null;check:amount > 0"`
 	Status              string            `gorm:"not null"`
 	Type                string            `gorm:"column:transaction_type;not null"`
 	AssetID             string            `gorm:"type:uuid;not null;index"`
 	Asset               *AssetModel       `gorm:"foreignKey:AssetID;references:ID"`
 	SourceWalletID      *string           `gorm:"type:uuid;index"`
-	SourceWallet        *WalletModel      `gorm:"foreignKey:SourceWalletID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	SourceWallet        *WalletModel      `gorm:"foreignKey:SourceWalletID;references:ID"`
 	DestinationWalletID *string           `gorm:"type:uuid;index"`
-	DestinationWallet   *WalletModel      `gorm:"foreignKey:DestinationWalletID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	DestinationWallet   *WalletModel      `gorm:"foreignKey:DestinationWalletID;references:ID"`
+	ReferenceID         *string           `gorm:"index"`
 	ReversalOriginID    *string           `gorm:"type:uuid;index"`
 	ReversalOrigin      *TransactionModel `gorm:"foreignKey:ReversalOriginID;references:ID"`
 	Description         string            `gorm:"not null"`
@@ -42,6 +43,7 @@ func TransactionToDomain(m *TransactionModel) *domain.Transaction {
 		SourceWallet:        transactionWalletToDomain(m.SourceWallet, m.SourceWalletID),
 		DestinationWalletID: m.DestinationWalletID,
 		DestinationWallet:   transactionWalletToDomain(m.DestinationWallet, m.DestinationWalletID),
+		ReferenceID:         m.ReferenceID,
 		ReversalOriginID:    m.ReversalOriginID,
 		ReversalOrigin:      TransactionToDomain(m.ReversalOrigin),
 		Description:         m.Description,
@@ -80,6 +82,7 @@ func TransactionFromDomain(d *domain.Transaction) *TransactionModel {
 		AssetID:             d.AssetID,
 		SourceWalletID:      sourceAccountID,
 		DestinationWalletID: destinationAccountID,
+		ReferenceID:         d.ReferenceID,
 		ReversalOriginID:    d.ReversalOriginID,
 		Description:         d.Description,
 		CompletedAt:         d.CompletedAt,

@@ -17,6 +17,7 @@ func main() {
 		models.AssetPriceModel{},
 		models.WalletModel{},
 		models.AccountModel{},
+		models.AccountIdentifierModel{},
 		models.TransactionModel{},
 		models.LedgerAccountModel{},
 		models.LedgerTransactionModel{},

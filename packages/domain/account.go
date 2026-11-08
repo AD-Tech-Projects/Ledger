@@ -2,13 +2,13 @@ package domain
 
 // NOTE - the account entity represents a financial account,
 // which can be either a bank account or a crypto account.
-// It is associated with a Wallet and can have multiple identifiers,
+// It belongs to an Owner, can be linked to multiple Wallets and can have multiple identifiers,
 // such as personal code, corporate code, phone number, email, or random identifier.
 type Account struct {
 	ID string
 
-	WalletID string
-	Wallet   *Wallet
+	OwnerID string
+	Owner   *Owner
 
 	Kind        AccountKind        // Kind defines whether the bank fields or the crypto fields are filled.
 	CountryCode AccountCountryCode // CountryCode is the jurisdiction of the account, which defines the available payment rails.

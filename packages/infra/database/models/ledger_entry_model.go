@@ -4,15 +4,15 @@ import "github.com/AD-Tech-Projects/Ledger/packages/domain"
 
 type LedgerEntryModel struct {
 	BaseModel
-	LedgerTransactionID string                  `gorm:"type:uuid;not null;index"`
+	LedgerTransactionID string                  `gorm:"type:uuid;not null;uniqueIndex:idx_ledger_entries_transaction_sequence,priority:1"`
 	LedgerTransaction   *LedgerTransactionModel `gorm:"foreignKey:LedgerTransactionID;references:ID"`
 	LedgerAccountID     string                  `gorm:"type:uuid;not null;index"`
 	LedgerAccount       *LedgerAccountModel     `gorm:"foreignKey:LedgerAccountID;references:ID"`
 	AssetID             string                  `gorm:"type:uuid;not null;index"`
 	Asset               *AssetModel             `gorm:"foreignKey:AssetID;references:ID"`
-	Amount              int64                   `gorm:"not null"`
-	Direction           string                  `gorm:"not null"`
-	Sequence            int64                   `gorm:"not null"`
+	Amount              int64                   `gorm:"not null;check:amount > 0"`
+	Direction           string                  `gorm:"not null;check:direction IN ('DEBIT', 'CREDIT')"`
+	Sequence            int64                   `gorm:"not null;uniqueIndex:idx_ledger_entries_transaction_sequence,priority:2"`
 }
 
 func (LedgerEntryModel) TableName() string {

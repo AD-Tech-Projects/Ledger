@@ -7,15 +7,15 @@ type WalletModel struct {
 	Type            string        `gorm:"not null"`
 	Status          string        `gorm:"not null"`
 	Version         int64         `gorm:"not null"`
-	FreeBalance     int64         `gorm:"not null"`
-	ReservedBalance int64         `gorm:"not null"`
-	HoldBalance     int64         `gorm:"not null"`
+	FreeBalance     int64         `gorm:"not null;check:free_balance >= 0"`
+	ReservedBalance int64         `gorm:"not null;check:reserved_balance >= 0"`
+	HoldBalance     int64         `gorm:"not null;check:hold_balance >= 0"`
 	OwnerID         string        `gorm:"type:uuid;not null;index"`
 	Owner           *OwnerModel   `gorm:"foreignKey:OwnerID;references:ID"`
 	AssetID         string        `gorm:"type:uuid;not null;index"`
 	Asset           *AssetModel   `gorm:"foreignKey:AssetID;references:ID"`
 	AccountID       *string       `gorm:"type:uuid;index"`
-	Account         *AccountModel `gorm:"foreignKey:WalletID;references:ID"`
+	Account         *AccountModel `gorm:"foreignKey:AccountID;references:ID"`
 }
 
 func (WalletModel) TableName() string {

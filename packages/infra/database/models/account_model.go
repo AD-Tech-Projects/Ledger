@@ -6,11 +6,11 @@ import (
 
 type AccountModel struct {
 	BaseModel
-	WalletID        string       `gorm:"type:uuid;not null;uniqueIndex"`
-	Wallet          *WalletModel `gorm:"foreignKey:WalletID;references:ID"`
-	Kind            string       `gorm:"not null"`
-	CountryCode     string       `gorm:"size:2"`
-	Currency        string       `gorm:"not null"`
+	OwnerID         string      `gorm:"type:uuid;not null;index:idx_external_accounts_owner_currency,priority:1"`
+	Owner           *OwnerModel `gorm:"foreignKey:OwnerID;references:ID"`
+	Kind            string      `gorm:"not null"`
+	CountryCode     string      `gorm:"size:7"`
+	Currency        string      `gorm:"not null;index:idx_external_accounts_owner_currency,priority:2"`
 	InstitutionName string
 	BranchCode      string
 	AccountNumber   string
@@ -31,7 +31,7 @@ func AccountToDomain(m *AccountModel) *domain.Account {
 	if m == nil {
 		return nil
 	}
-	account := &domain.Account{ID: m.ID, WalletID: m.WalletID, Kind: domain.AccountKind(m.Kind),
+	account := &domain.Account{ID: m.ID, OwnerID: m.OwnerID, Owner: OwnerToDomain(m.Owner), Kind: domain.AccountKind(m.Kind),
 		CountryCode: domain.AccountCountryCode(m.CountryCode), Currency: m.Currency, InstitutionName: m.InstitutionName,
 		BranchCode: m.BranchCode, AccountNumber: m.AccountNumber, RoutingCode: m.RoutingCode,
 		IBAN: m.IBAN, BIC: m.BIC, CryptoNetwork: m.CryptoNetwork,
@@ -47,7 +47,7 @@ func AccountFromDomain(d *domain.Account) *AccountModel {
 		return nil
 	}
 	model := &AccountModel{
-		BaseModel: BaseModel{ID: d.ID}, WalletID: d.WalletID, Kind: string(d.Kind),
+		BaseModel: BaseModel{ID: d.ID}, OwnerID: d.OwnerID, Kind: string(d.Kind),
 		CountryCode: string(d.CountryCode), Currency: d.Currency, InstitutionName: d.InstitutionName,
 		BranchCode: d.BranchCode, AccountNumber: d.AccountNumber, RoutingCode: d.RoutingCode,
 		IBAN: d.IBAN, BIC: d.BIC, CryptoNetwork: d.CryptoNetwork, CryptoAddress: d.CryptoAddress,
