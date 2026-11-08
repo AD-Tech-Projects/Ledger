@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,48 +14,56 @@ import (
 	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
-var ErrInvalidTransaction = errors.New("invalid transaction")
-var ErrTransactionNotFound = errors.New("transaction not found")
-
 type TransactionService struct {
 	transactionRepository *repositories.GormRepository[models.TransactionModel, domain.Transaction]
-	accountRepository     *repositories.GormRepository[models.AccountModel, domain.Account]
+	walletRepository      *repositories.GormRepository[models.WalletModel, domain.Wallet]
 }
 
 func NewTransactionService(
 	transactionRepository *repositories.GormRepository[models.TransactionModel, domain.Transaction],
-	accountRepository *repositories.GormRepository[models.AccountModel, domain.Account],
+	walletRepository *repositories.GormRepository[models.WalletModel, domain.Wallet],
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepository: transactionRepository,
-		accountRepository:     accountRepository,
+		walletRepository:      walletRepository,
 	}
 }
 
-func (s *TransactionService) Create(ctx context.Context, amount int64, transactionType domain.TransactionType, sourceAccountId string, destinationAccountId string) (*domain.Transaction, error) {
+type transactionError struct {
+	operation domain.TransactionType
+	message   string
+}
+
+func (e *transactionError) Error() string {
+	return fmt.Errorf("TransactionError-{%s}: %s", e.operation, e.message).Error()
+}
+
+var (
+	ErrInvalidTransaction  = errors.New("invalid transaction")
+	ErrTransactionNotFound = errors.New("transaction not found")
+)
+
+func (s *TransactionService) Create(ctx context.Context, amount int64, transactionType domain.TransactionType, sourceWalletID string, destinationWalletID string) (*domain.Transaction, error) {
 	transaction := &domain.Transaction{
-		Amount:          amount,
-		Status:          domain.PENDING,
-		TransactionType: transactionType,
-		SourceAccount: &domain.Account{
-			ID: sourceAccountId,
+		Amount: amount,
+		Status: domain.TRANSACTION_PENDING,
+		Type:   transactionType,
+		SourceWallet: &domain.Wallet{
+			ID: sourceWalletID,
 		},
-		DestinationAccount: &domain.Account{
-			ID: destinationAccountId,
+		DestinationWallet: &domain.Wallet{
+			ID: destinationWalletID,
 		},
 	}
 
-	if transaction == nil {
-		return nil, fmt.Errorf("%w: transaction is required", ErrInvalidTransaction)
+	if transaction.SourceWallet == nil || transaction.DestinationWallet == nil {
+		return nil, fmt.Errorf("%w: source and destination wallets are required", ErrInvalidTransaction)
 	}
-	if transaction.SourceAccount == nil || transaction.DestinationAccount == nil {
-		return nil, fmt.Errorf("%w: source and destination accounts are required", ErrInvalidTransaction)
+	if _, err := uuid.Parse(transaction.SourceWallet.ID); err != nil {
+		return nil, fmt.Errorf("%w: source wallet id must be a valid UUID", ErrInvalidTransaction)
 	}
-	if _, err := uuid.Parse(transaction.SourceAccount.ID); err != nil {
-		return nil, fmt.Errorf("%w: source account id must be a valid UUID", ErrInvalidTransaction)
-	}
-	if _, err := uuid.Parse(transaction.DestinationAccount.ID); err != nil {
-		return nil, fmt.Errorf("%w: destination account id must be a valid UUID", ErrInvalidTransaction)
+	if _, err := uuid.Parse(transaction.DestinationWallet.ID); err != nil {
+		return nil, fmt.Errorf("%w: destination wallet id must be a valid UUID", ErrInvalidTransaction)
 	}
 
 	if transaction.ID == "" {
@@ -63,54 +72,48 @@ func (s *TransactionService) Create(ctx context.Context, amount int64, transacti
 
 	var transactionFailure error
 	err := s.transactionRepository.Transaction(ctx, func(tx *gorm.DB) error {
-		accountRepository := s.accountRepository.WithDB(tx)
+		// TODO - lock queries for source and destination wallets to prevent race conditions
+		walletRepository := s.walletRepository.WithDB(tx)
 		transactionRepository := s.transactionRepository.WithDB(tx)
 
-		sourceAccount, err := accountRepository.GetByID(ctx, transaction.SourceAccount.ID)
+		sourceWallet, err := walletRepository.GetByID(ctx, transaction.SourceWallet.ID)
 		if err != nil {
-			return fmt.Errorf("failed to get source account: %w", err)
+			return fmt.Errorf("failed to get source wallet: %w", err)
 		}
-		if sourceAccount == nil {
-			return ErrAccountNotFound
-		}
-		destinationAccount, err := accountRepository.GetByID(ctx, transaction.DestinationAccount.ID)
+		destinationWallet, err := walletRepository.GetByID(ctx, transaction.DestinationWallet.ID)
 		if err != nil {
-			return fmt.Errorf("failed to get destination account: %w", err)
+			return fmt.Errorf("failed to get destination wallet: %w", err)
 		}
-		if destinationAccount == nil {
-			return ErrAccountNotFound
+		if sourceWallet == nil || destinationWallet == nil {
+			return ErrWalletNotFound
 		}
 
-		if err := makeTransactionSafely(transaction, sourceAccount, destinationAccount); err != nil {
-			transaction.Status = domain.FAILED
-			transactionFailure = fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
+		transaction.SourceWallet = sourceWallet
+		transaction.DestinationWallet = destinationWallet
+
+		if err := validateTransaction(transaction); err != nil {
+			transactionFailure = err
+		}
+		if err := applyTransaction(transaction); err != nil {
+			transactionFailure = err
+		}
+		if transactionFailure != nil {
+			transaction.Status = domain.TRANSACTION_FAILED
 			return transactionFailure
 		}
 
-		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
-			return fmt.Errorf("failed to update source account: %w", err)
+		if err := walletRepository.Update(ctx, sourceWallet); err != nil {
+			return fmt.Errorf("failed to update source wallet: %w", err)
 		}
-		if err := accountRepository.Update(ctx, destinationAccount); err != nil {
-			return fmt.Errorf("failed to update destination account: %w", err)
+		if err := walletRepository.Update(ctx, destinationWallet); err != nil {
+			return fmt.Errorf("failed to update destination wallet: %w", err)
 		}
+
+		transaction.Status = domain.TRANSACTION_COMPLETED
+		now := time.Now()
+		transaction.CompletedAt = &now
 		if err := transactionRepository.Create(ctx, transaction); err != nil {
 			return fmt.Errorf("failed to create transaction: %w", err)
-		}
-
-		if err := commitTransactionSafely(transaction); err != nil {
-			transaction.Status = domain.FAILED
-			transactionFailure = fmt.Errorf("%w: %v", ErrInvalidTransaction, err)
-			return transactionFailure
-		}
-
-		if err := accountRepository.Update(ctx, sourceAccount); err != nil {
-			return fmt.Errorf("failed to update source account after commit: %w", err)
-		}
-		if err := accountRepository.Update(ctx, destinationAccount); err != nil {
-			return fmt.Errorf("failed to update destination account after commit: %w", err)
-		}
-		if err := transactionRepository.Update(ctx, transaction); err != nil {
-			return fmt.Errorf("failed to update transaction: %w", err)
 		}
 
 		return nil
@@ -150,35 +153,46 @@ func (s *TransactionService) persistFailedTransaction(
 	return nil
 }
 
-func makeTransactionSafely(
-	transaction *domain.Transaction,
-	sourceAccount *domain.Account,
-	destinationAccount *domain.Account,
-) (err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("%v", recovered)
-		}
-	}()
+func applyTransaction(transaction *domain.Transaction) error {
+	source := transaction.SourceWallet
+	destination := transaction.DestinationWallet
+	amount := transaction.Amount
 
-	*transaction = domain.MakeTransaction(
-		transaction.ID,
-		transaction.Amount,
-		transaction.TransactionType,
-		sourceAccount,
-		destinationAccount,
-	)
-	return nil
+	switch transaction.Type {
+	case domain.TRANSACTION_DEPOSIT, domain.TRANSACTION_TRANSFER:
+		return transferFreeBalance(source, destination, amount, transaction.Type)
+	case domain.TRANSACTION_WITHDRAWAL, domain.TRANSACTION_REVERSAL:
+		return transferFreeBalance(destination, source, amount, transaction.Type)
+	case domain.TRANSACTION_YIELD, domain.TRANSACTION_SALE:
+		if err := destination.IncreaseHoldBalance(amount); err != nil {
+			return &transactionError{operation: transaction.Type, message: "failed to increase hold balance for destination wallet"}
+		}
+		return destination.MoveHoldBalanceToFree(amount)
+	case domain.TRANSACTION_FEE, domain.TRANSACTION_PURCHASE:
+		return transferFreeBalance(source, destination, amount, transaction.Type)
+	case domain.TRANSACTION_RESERVE, domain.TRANSACTION_HOLD:
+		return source.MoveFreeBalanceToHold(amount)
+	case domain.TRANSACTION_RELEASE, domain.TRANSACTION_UNHOLD:
+		return source.MoveHoldBalanceToFree(amount)
+	default:
+		return &transactionValidationError{message: fmt.Sprintf("unsupported transaction type: %s", transaction.Type)}
+	}
 }
 
-func commitTransactionSafely(transaction *domain.Transaction) (err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("%v", recovered)
-		}
-	}()
-
-	transaction.Commit()
+func transferFreeBalance(source *domain.Wallet, destination *domain.Wallet, amount int64, op domain.TransactionType) error {
+	if err := source.MoveFreeBalanceToHold(amount); err != nil {
+		return &transactionError{operation: op, message: "failed to move free balance to hold for source wallet"}
+	}
+	if err := destination.IncreaseHoldBalance(amount); err != nil {
+		_ = source.MoveHoldBalanceToFree(amount)
+		return &transactionError{operation: op, message: "failed to increase hold balance for destination wallet"}
+	}
+	if err := source.DecreaseHoldBalance(amount); err != nil {
+		return &transactionError{operation: op, message: "failed to decrease hold balance for source wallet"}
+	}
+	if err := destination.MoveHoldBalanceToFree(amount); err != nil {
+		return &transactionError{operation: op, message: "failed to move hold balance to free for destination wallet"}
+	}
 	return nil
 }
 
@@ -188,10 +202,10 @@ func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Tr
 	}
 
 	transaction, err := s.transactionRepository.GetByID(ctx, id,
-		repositories.Join[models.TransactionModel]("SourceAccount"),
-		repositories.Join[models.TransactionModel]("SourceAccount.Holder"),
-		repositories.Join[models.TransactionModel]("DestinationAccount"),
-		repositories.Join[models.TransactionModel]("DestinationAccount.Holder"))
+		repositories.Join[models.TransactionModel]("SourceWallet"),
+		repositories.Join[models.TransactionModel]("SourceWallet.Owner"),
+		repositories.Join[models.TransactionModel]("DestinationWallet"),
+		repositories.Join[models.TransactionModel]("DestinationWallet.Owner"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction by id: %w", err)
 	}
@@ -203,7 +217,7 @@ func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Tr
 }
 
 func (s *TransactionService) GetAll(ctx context.Context, filter *domain.Transaction) ([]*domain.Transaction, error) {
-	transactions, err := s.transactionRepository.GetAll(ctx, filter)
+	transactions, err := s.transactionRepository.FindAll(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transactions: %w", err)
 	}
