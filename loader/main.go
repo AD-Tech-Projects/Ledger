@@ -12,9 +12,15 @@ import (
 func main() {
 	// ANCHOR - Load all the database models
 	stmts, err := gormschema.New("postgres").Load(
-		models.AccountHolderModel{},
+		models.OwnerModel{},
+		models.AssetModel{},
+		models.AssetPriceModel{},
+		models.WalletModel{},
 		models.AccountModel{},
 		models.TransactionModel{},
+		models.LedgerAccountModel{},
+		models.LedgerTransactionModel{},
+		models.LedgerEntryModel{},
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load gorm schema: %v\n", err)
