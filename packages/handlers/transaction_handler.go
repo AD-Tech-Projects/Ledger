@@ -31,9 +31,11 @@ type createTransactionRequestBody struct {
 func (h *TransactionHandler) Create(c *gin.Context) {
 	log := logger.WithContext("TransactionHandler.create")
 	context := c.Request.Context()
+	log.Info("creating transaction")
 
 	transactionPayload, ok := decodeRequestBody[createTransactionRequestBody](c)
 	if !ok {
+		log.Warn("transaction creation rejected: invalid request body")
 		return
 	}
 
@@ -53,11 +55,13 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
+	log.Info("transaction created successfully")
 	encodeJSONResponse(c, http.StatusCreated, createdTransaction)
 }
 
 func (h *TransactionHandler) List(c *gin.Context) {
 	log := logger.WithContext("TransactionHandler.list")
+	log.Info("listing transactions")
 	filter := &domain.Transaction{
 		ID:     c.Query("id"),
 		Status: domain.TransactionStatus(c.Query("status")),
@@ -76,11 +80,13 @@ func (h *TransactionHandler) List(c *gin.Context) {
 		return
 	}
 
+	log.Info("transactions listed successfully")
 	encodeJSONResponse(c, http.StatusOK, transactions)
 }
 
 func (h *TransactionHandler) GetById(c *gin.Context) {
 	log := logger.WithContext("TransactionHandler.getById")
+	log.Info("getting transaction by id")
 	transaction, err := h.transactionService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		log.Error(err)
@@ -97,5 +103,6 @@ func (h *TransactionHandler) GetById(c *gin.Context) {
 		return
 	}
 
+	log.Info("transaction retrieved successfully")
 	encodeJSONResponse(c, http.StatusOK, transaction)
 }

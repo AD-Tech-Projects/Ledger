@@ -46,9 +46,11 @@ type createWalletRequestBody struct {
 func (h *WalletHandler) Create(c *gin.Context) {
 	log := logger.WithContext("WalletHandler.create")
 	context := c.Request.Context()
+	log.Info("creating wallet")
 
 	body, ok := decodeRequestBody[createWalletRequestBody](c)
 	if !ok {
+		log.Warn("wallet creation rejected: invalid request body")
 		return
 	}
 
@@ -73,6 +75,7 @@ func (h *WalletHandler) Create(c *gin.Context) {
 				writeInternalServerError(c, err)
 				return
 			}
+			log.Info("created wallet owner")
 		} else {
 			log.Error(err)
 			writeInternalServerError(c, err)
@@ -105,11 +108,13 @@ func (h *WalletHandler) Create(c *gin.Context) {
 		return
 	}
 
+	log.Info("wallet created successfully")
 	encodeJSONResponse(c, http.StatusCreated, foundWallet)
 }
 
 func (h *WalletHandler) List(c *gin.Context) {
 	log := logger.WithContext("WalletHandler.list")
+	log.Info("listing wallets")
 	filter := &domain.Wallet{
 		ID:      c.Query("id"),
 		Status:  domain.WalletStatus(c.Query("status")),
@@ -124,11 +129,13 @@ func (h *WalletHandler) List(c *gin.Context) {
 		return
 	}
 
+	log.Info("wallets listed successfully")
 	encodeJSONResponse(c, http.StatusOK, wallets)
 }
 
 func (h *WalletHandler) GetById(c *gin.Context) {
 	log := logger.WithContext("WalletHandler.getById")
+	log.Info("getting wallet by id")
 	wallet, err := h.walletService.GetById(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		log.Error(err)
@@ -145,11 +152,13 @@ func (h *WalletHandler) GetById(c *gin.Context) {
 		return
 	}
 
+	log.Info("wallet retrieved successfully")
 	encodeJSONResponse(c, http.StatusOK, wallet)
 }
 
 func (h *WalletHandler) Deactivate(c *gin.Context) {
 	log := logger.WithContext("WalletHandler.deactivate")
+	log.Info("deactivating wallet")
 	if err := h.walletService.Deactivate(c.Request.Context(), c.Param("id")); err != nil {
 		log.Error(err)
 		if errors.Is(err, services.ErrInvalidWallet) {
@@ -165,5 +174,6 @@ func (h *WalletHandler) Deactivate(c *gin.Context) {
 		return
 	}
 
+	log.Info("wallet deactivated successfully")
 	c.Status(http.StatusNoContent)
 }
