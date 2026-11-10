@@ -1,7 +1,7 @@
 # Contexto do projeto — Ledger em Go
 
 > Fontes: conversas do projeto do ChatGPT "Ledger em Go" (*Documentação para ledger em Go* e *Documentação para ledger em Go (1)*) e o código do repositório no commit `9ef1469`.
-> Para instruções de execução, veja o [`README.md`](./README.md).
+> Para instruções de execução, veja o [`README.md`](../README.md).
 
 Documentação inicial do projeto: [Ledger em Go](https://chatgpt.com/g/g-p-6aefd4b3f97c8191bc88b938025d71e8-ledger-em-go/project).
 
@@ -63,7 +63,7 @@ Decisões de modelagem:
 
 ## 4. Entidades do domínio (`packages/domain`)
 
-> A documentação de referência das entidades, em inglês, fica em [`packages/domain/doc.go`](./packages/domain/doc.go) (`go doc ./packages/domain`).
+> A documentação de referência das entidades, em inglês, fica em [`packages/domain/doc.go`](../packages/domain/doc.go) (`go doc ./packages/domain`).
 
 ```text
 Owner       1──N    Wallet
