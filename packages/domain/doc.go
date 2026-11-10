@@ -1,4 +1,4 @@
-// Package domain contains the entities, enumerations and balance rules of the Ledger,
+// Package domain contains the entities and enumerations of the Ledger,
 // a financial system built around a double-entry bookkeeping ledger.
 //
 // The ledger is meant to be the financial source of truth. Wallets are the operational view
@@ -55,7 +55,7 @@
 //
 // [WalletType] describes what the wallet is used for (checking, savings, investment, crypto),
 // while [AssetType] describes what it stores. Checking and savings wallets must be linked to an
-// external [Account] (see [WalletType.RequiresAccount]). Deleting a wallet is modeled as
+// external [Account]. Deleting a wallet is modeled as
 // deactivation, so its history is preserved.
 //
 // # Account and AccountIdentifier
