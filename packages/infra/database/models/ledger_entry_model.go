@@ -42,7 +42,7 @@ func LedgerEntryFromDomain(d *domain.LedgerEntry) *LedgerEntryModel {
 		return nil
 	}
 	return &LedgerEntryModel{
-		BaseModel:           BaseModel{ID: d.ID},
+		ID:                  d.ID,
 		LedgerTransactionID: d.LedgerTransactionID,
 		LedgerAccountID:     d.LedgerAccountID,
 		AssetID:             d.AssetID,

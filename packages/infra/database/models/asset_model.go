@@ -34,7 +34,7 @@ func AssetFromDomain(d *domain.Asset) *AssetModel {
 		return nil
 	}
 	return &AssetModel{
-		BaseModel:     BaseModel{ID: d.ID},
+		ID:            d.ID,
 		Name:          d.Name,
 		Type:          string(d.Type),
 		Status:        string(d.Status),

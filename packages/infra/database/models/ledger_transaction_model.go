@@ -47,7 +47,7 @@ func LedgerTransactionFromDomain(d *domain.LedgerTransaction) *LedgerTransaction
 		return nil
 	}
 	return &LedgerTransactionModel{
-		BaseModel:        BaseModel{ID: d.ID},
+		ID:               d.ID,
 		TransactionID:    d.TransactionID,
 		Status:           string(d.Status),
 		Description:      d.Description,

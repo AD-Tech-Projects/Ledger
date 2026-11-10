@@ -25,7 +25,7 @@ func OwnerToDomain(m *OwnerModel) *domain.Owner {
 
 func OwnerFromDomain(d *domain.Owner) *OwnerModel {
 	return &OwnerModel{
-		BaseModel:        BaseModel{ID: d.ID},
+		ID:               d.ID,
 		UniqueIdentifier: d.UniqueIdentifier,
 		OwnerType:        string(d.Type),
 	}
