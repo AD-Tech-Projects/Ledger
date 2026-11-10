@@ -1,7 +1,5 @@
 package domain
 
-import "errors"
-
 type Wallet struct {
 	ID string
 
@@ -41,75 +39,3 @@ const (
 	WALLET_ACTIVE   WalletStatus = "ACTIVE"   // Can send and receive funds
 	WALLET_INACTIVE WalletStatus = "INACTIVE" // Deactivated (logically deleted); cannot take part in new transactions
 )
-
-func (t WalletType) RequiresAccount() bool {
-	return t == WALLET_CHECKING || t == WALLET_SAVINGS
-}
-
-func (w *Wallet) MoveFreeBalanceToHold(amount int64) error {
-	if err := w.validateFreeBalance(amount); err != nil {
-		return err
-	}
-
-	w.FreeBalance -= amount
-	w.HoldBalance += amount
-	return nil
-}
-
-func (w *Wallet) IncreaseHoldBalance(amount int64) error {
-	if err := validateAmount(amount); err != nil {
-		return err
-	}
-
-	w.HoldBalance += amount
-	return nil
-}
-
-func (w *Wallet) DecreaseHoldBalance(amount int64) error {
-	if err := w.validateHoldBalance(amount); err != nil {
-		return err
-	}
-
-	w.HoldBalance -= amount
-	return nil
-}
-
-func (w *Wallet) MoveHoldBalanceToFree(amount int64) error {
-	if err := w.validateHoldBalance(amount); err != nil {
-		return err
-	}
-
-	w.HoldBalance -= amount
-	w.FreeBalance += amount
-	return nil
-}
-
-func (w *Wallet) validateHoldBalance(amount int64) error {
-	if err := validateAmount(amount); err != nil {
-		return err
-	}
-	if w.HoldBalance < amount {
-		return errors.New("insufficient hold balance")
-	}
-
-	return nil
-}
-
-func (w *Wallet) validateFreeBalance(amount int64) error {
-	if err := validateAmount(amount); err != nil {
-		return err
-	}
-	if w.FreeBalance < amount {
-		return errors.New("insufficient free balance")
-	}
-
-	return nil
-}
-
-func validateAmount(amount int64) error {
-	if amount <= 0 {
-		return errors.New("amount must be greater than zero")
-	}
-
-	return nil
-}
