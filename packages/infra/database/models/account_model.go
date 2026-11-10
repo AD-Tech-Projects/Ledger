@@ -47,7 +47,7 @@ func AccountFromDomain(d *domain.Account) *AccountModel {
 		return nil
 	}
 	model := &AccountModel{
-		BaseModel: BaseModel{ID: d.ID}, OwnerID: d.OwnerID, Kind: string(d.Kind),
+		ID: d.ID, OwnerID: d.OwnerID, Kind: string(d.Kind),
 		CountryCode: string(d.CountryCode), Currency: d.Currency, InstitutionName: d.InstitutionName,
 		BranchCode: d.BranchCode, AccountNumber: d.AccountNumber, RoutingCode: d.RoutingCode,
 		IBAN: d.IBAN, BIC: d.BIC, CryptoNetwork: d.CryptoNetwork, CryptoAddress: d.CryptoAddress,

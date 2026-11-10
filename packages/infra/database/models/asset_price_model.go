@@ -40,7 +40,7 @@ func AssetPriceFromDomain(d *domain.AssetPrice) *AssetPriceModel {
 		return nil
 	}
 	return &AssetPriceModel{
-		BaseModel:    BaseModel{ID: d.ID},
+		ID:           d.ID,
 		Price:        d.Price,
 		RecordedAt:   d.RecordedAt,
 		AssetID:      d.AssetID,

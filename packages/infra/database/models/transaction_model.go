@@ -75,7 +75,8 @@ func TransactionFromDomain(d *domain.Transaction) *TransactionModel {
 		destinationAccountID = d.DestinationWalletID
 	}
 	return &TransactionModel{
-		BaseModel:           BaseModel{ID: d.ID, CreatedAt: d.CreatedAt},
+		ID:                  d.ID,
+		CreatedAt:           d.CreatedAt,
 		Amount:              d.Amount,
 		Status:              string(d.Status),
 		Type:                string(d.Type),

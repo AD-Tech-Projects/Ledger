@@ -40,7 +40,7 @@ func LedgerAccountFromDomain(d *domain.LedgerAccount) *LedgerAccountModel {
 		return nil
 	}
 	return &LedgerAccountModel{
-		BaseModel:              BaseModel{ID: d.ID},
+		ID:                     d.ID,
 		Type:                   string(d.Type),
 		Status:                 string(d.Status),
 		NormalBalanceDirection: string(d.NormalBalanceDirection),

@@ -428,14 +428,17 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Docker Compose (PostgreSQL e Redis)
 - [x] Makefile (run, build, test, migrações)
 - [x] Health check
+- [ ] Documentação da API (OpenAPI/Swagger) apenas em modo desenvolvimento
 - [ ] Uso do Redis (cache)
 - [ ] Lint (`go vet`, `golangci-lint`) e CI
 
 ### Identidade e segurança (fase 4)
 
 - [ ] Login por CPF/CNPJ e senha com hash seguro
+- [ ] Autenticação via token JWT ou sessão, com expiração e renovação
 - [ ] Autorização por carteira e privacidade do histórico
 - [ ] Documento do titular criptografado, com HMAC para unicidade
+- [ ] Criptografia de dados sensíveis (titular, conta externa, chaves de pagamento)
 
 ### Descentralização e escala (fases 5 e 6)
 

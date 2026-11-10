@@ -42,7 +42,7 @@ func WalletFromDomain(d *domain.Wallet) *WalletModel {
 		return nil
 	}
 	model := &WalletModel{
-		BaseModel: BaseModel{ID: d.ID}, Type: string(d.Type), Status: string(d.Status),
+		ID: d.ID, Type: string(d.Type), Status: string(d.Status),
 		Version: d.Version, FreeBalance: d.FreeBalance, ReservedBalance: d.ReservedBalance,
 		HoldBalance: d.HoldBalance, OwnerID: d.OwnerID, AssetID: d.AssetID, AccountID: d.AccountID,
 	}

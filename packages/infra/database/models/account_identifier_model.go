@@ -20,6 +20,6 @@ func identifierToDomain(m *AccountIdentifierModel) domain.AccountIdentifier {
 }
 
 func identifierFromDomain(d domain.AccountIdentifier) AccountIdentifierModel {
-	return AccountIdentifierModel{BaseModel: BaseModel{ID: d.ID}, AccountID: d.AccountID, Network: string(d.Network),
+	return AccountIdentifierModel{ID: d.ID, AccountID: d.AccountID, Network: string(d.Network),
 		IdentifierType: string(d.Type), Value: d.Value}
 }
