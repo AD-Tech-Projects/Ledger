@@ -38,3 +38,7 @@ func writeBadRequest(c *gin.Context, err error) {
 func writeNotFound(c *gin.Context, err error) {
 	writeError(c, http.StatusNotFound, err)
 }
+
+func writeUnprocessableEntity(c *gin.Context, err error) {
+	writeError(c, http.StatusUnprocessableEntity, err)
+}

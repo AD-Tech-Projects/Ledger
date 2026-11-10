@@ -24,8 +24,11 @@ func NewTransactionHandler(
 type createTransactionRequestBody struct {
 	Amount              int64                  `json:"amount"`
 	TransactionType     domain.TransactionType `json:"transactionType"`
-	SourceWalletID      string                 `json:"sourceWalletId"`
-	DestinationWalletID string                 `json:"destinationWalletId"`
+	SourceWalletID      *string                `json:"sourceWalletId"`
+	DestinationWalletID *string                `json:"destinationWalletId"`
+	ReversalOriginID    *string                `json:"reversalOriginId"`
+	ReferenceID         *string                `json:"referenceId"`
+	Description         string                 `json:"description"`
 }
 
 func (h *TransactionHandler) Create(c *gin.Context) {
@@ -39,19 +42,27 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	createdTransaction, err := h.transactionService.Create(context,
-		transactionPayload.Amount,
-		transactionPayload.TransactionType,
-		transactionPayload.SourceWalletID,
-		transactionPayload.DestinationWalletID)
+	createdTransaction, err := h.transactionService.Create(context, services.CreateTransactionInput{
+		Amount:              transactionPayload.Amount,
+		Type:                transactionPayload.TransactionType,
+		SourceWalletID:      transactionPayload.SourceWalletID,
+		DestinationWalletID: transactionPayload.DestinationWalletID,
+		ReversalOriginID:    transactionPayload.ReversalOriginID,
+		ReferenceID:         transactionPayload.ReferenceID,
+		Description:         transactionPayload.Description,
+	})
 	if err != nil {
 		log.Error(err)
-		if errors.Is(err, services.ErrInvalidTransaction) {
+		switch {
+		case errors.Is(err, services.ErrInvalidTransaction):
 			writeBadRequest(c, err)
-			return
+		case errors.Is(err, services.ErrWalletNotFound):
+			writeNotFound(c, err)
+		case errors.Is(err, services.ErrTransactionFailed):
+			writeUnprocessableEntity(c, err)
+		default:
+			writeInternalServerError(c, err)
 		}
-
-		writeInternalServerError(c, err)
 		return
 	}
 

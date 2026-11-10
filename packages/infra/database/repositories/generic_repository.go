@@ -140,6 +140,14 @@ func (r *GormRepository[M, E]) Transaction(
 	return r.db.WithContext(ctx).Transaction(fn)
 }
 
+// NOTE - locks the selected rows (SELECT ... FOR UPDATE) until the end of the database transaction
+func ForUpdate[M any]() QueryOption[M] {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Clauses(clause.Locking{Strength: clause.LockingStrengthUpdate})
+	}
+}
+
+// NOTE - joins the specified association, which must be defined in the GORM model, to allow filtering and sorting by its fields
 func Join[M any](association string) QueryOption[M] {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Joins(association)
