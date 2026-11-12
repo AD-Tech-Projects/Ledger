@@ -8,9 +8,12 @@ on:
 
 jobs:
   merge:
-    name: Auto Merge Main into Develop/Homolog/Release
+    name: Auto Merge Main into Release # Develop/Homolog/Release
 
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout main
@@ -22,6 +25,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # - name: Atualizar Develop
+      #   run: |
+      #     git checkout develop
+      #     git merge origin/main -m "Auto merge main into develop [skip ci]" --no-ff --no-edit
+      #     git push origin develop
+
+      # - name: Atualizar Homolog
+      #   run: |
+      #     git checkout homolog
+      #     git merge origin/main -m "Auto merge main into homolog [skip ci]" --no-ff --no-edit
+      #     git push origin homolog
 
       - name: Atualizar Release
         run: |
