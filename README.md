@@ -69,18 +69,13 @@ make migrate-hash                        # recomputes migrations/atlas.sum after
 
 ### 5. Register the assets
 
-Wallet creation looks up the asset by its code (`BRL`, `USD`, `BTC`...), but there is no asset seed or endpoint yet. Example of a manual insert:
+Wallet creation looks up the asset by its code, so the supported assets must exist. The seed in `seeds/` registers `BRL`, `USD`, `EUR`, `BTC`, `ETH`, `USDT` and `POINTS` (internal currency, 1 point = R$ 0.50), plus one reference price per asset quoted in USD:
 
-```sql
-INSERT INTO assets (id, created_at, updated_at, name, type, status, code, decimal_places) VALUES
-(gen_random_uuid(), now(), now(), 'Brazilian Real', 'FIAT',     'ACTIVE', 'BRL',    2),
-(gen_random_uuid(), now(), now(), 'US Dollar',      'FIAT',     'ACTIVE', 'USD',    2),
-(gen_random_uuid(), now(), now(), 'Euro',           'FIAT',     'ACTIVE', 'EUR',    2),
-(gen_random_uuid(), now(), now(), 'Bitcoin',        'CRYPTO',   'ACTIVE', 'BTC',    8),
-(gen_random_uuid(), now(), now(), 'Ethereum',       'CRYPTO',   'ACTIVE', 'ETH',    18),
-(gen_random_uuid(), now(), now(), 'Tether',         'CRYPTO',   'ACTIVE', 'USDT',   6),
-(gen_random_uuid(), now(), now(), 'Points',         'UNBACKED', 'ACTIVE', 'POINTS', 0);
+```bash
+make seed   # atlas migrate apply --dir file://seeds (revisions kept in the ledger_seeds schema)
 ```
+
+The seed is idempotent and must run after `make migrate-apply`. The prices are approximate values for development, not real-time quotes.
 
 ### 6. Run the application
 
@@ -145,5 +140,4 @@ go doc ./packages/api
 
 ## Known issues
 
-- **No asset seed**: assets are registered manually (see step 5).
 - **`DB_*` variables exported in the shell take precedence over `.env`**: this applies to `docker compose` and to the application as well (`godotenv` does not override variables that are already set). Only `make migrate-*` reads `.env` directly. Check `echo $DB_NAME` before starting the database or running the app.

@@ -158,6 +158,8 @@ Generaliza a antiga lista fixa de moedas (`USD`, `EUR`, `BRL`). Carteiras, trans
 
 Histórico de preços de um ativo (`Asset`) expresso em outro (`QuoteAsset`), por exemplo 1 BTC = R$ 350.000,00 em uma data. Serve para calcular o **valor de mercado** das carteiras sem alterar seus saldos.
 
+- `Price` é o valor de **uma unidade** do ativo na **menor unidade do `QuoteAsset`**. Em USD (2 casas), 1 BTC = US$ 95.000,00 é `9500000`.
+- O seed grava uma cotação por ativo em USD (a moeda fiduciária mais utilizada para cotações), inclusive `USD` cotado em si mesmo (`100`). `POINTS` é derivado de R$ 0,50 × cotação do BRL (US$ 0,18), ou seja `9`. Em cotações pequenas o inteiro em centavos perde precisão (BRL e POINTS).
 - **Valorização não é rendimento.** Se 1 BTC passa de R$ 300 mil para R$ 350 mil, a quantidade do titular continua igual e não há transação. Um rendimento (`YIELD`) aumenta a **quantidade** de ativos e gera lançamentos.
 
 ### 4.7 `Transaction`: operação de negócio
@@ -220,6 +222,7 @@ Uma linha **imutável** de débito ou crédito no livro-razão. É aqui que os *
 
 - **Saldos em inteiros na menor unidade do ativo**, com três estados: livre, reservado e retido.
 - **Ativos genéricos** (fiat, cripto, sem lastro) com precisão configurável. As carteiras são criadas pelo código do ativo.
+- **Seed de ativos e cotações** (`make seed`): BRL, USD, EUR, BTC, ETH, USDT e POINTS com uma cotação em USD cada, idempotente e separado das migrações de schema.
 - **Uma carteira por ativo**, ligada a um titular. O titular é criado automaticamente quando não existe, e seu documento é único.
 - **Novas carteiras começam com saldos zerados.** "Excluir" é desativar (`INACTIVE`), e o soft delete preserva o histórico.
 - **Validações de transação**: tipo suportado, valor positivo, carteiras aceitas pelo tipo, carteiras distintas, ativas e do mesmo ativo, e saldo suficiente. As carteiras podem ser de tipos e titulares diferentes.
@@ -354,7 +357,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Entidades contábeis modeladas (`LedgerAccount`, `LedgerTransaction`, `LedgerEntry`)
 - [x] Entidade de cotações modelada (`AssetPrice`)
 - [x] Entidades de conta externa e chaves de pagamento modeladas (`Account`, `AccountIdentifier`)
-- [ ] Seed de ativos suportados
+- [x] Seed de ativos suportados
 - [ ] Plano de contas inicial cadastrado (seed de `LedgerAccount`)
 - [ ] Validar a compatibilidade entre `NormalBalanceDirection` e `LedgerAccount.Type`
 - [ ] Regras de negócio específicas por `WalletType`

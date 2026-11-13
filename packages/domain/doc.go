@@ -103,6 +103,11 @@
 // without changing their balances. An appreciation is not a transaction and generates no ledger
 // entries, while a yield ([TRANSACTION_YIELD]) increases the quantity of the asset held.
 //
+// The supported assets are registered by the seed in seeds/ (make seed): BRL, USD and EUR (FIAT, 2
+// decimal places), BTC (8), ETH (18) and USDT (6) (CRYPTO), and POINTS (UNBACKED, 0), the internal
+// currency worth 0.50 BRL. The seed also records one reference price per asset quoted in USD, in
+// cents (AssetPrice.Price), as approximate development values and not real-time quotes.
+//
 // # Transaction
 //
 // [Transaction] is a business operation requested to the platform: transfer, deposit, withdrawal,
