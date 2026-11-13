@@ -1,4 +1,4 @@
-# Contexto do projeto — Ledger em Go
+# Contexto do Projeto — Ledger em Go
 
 > Fontes: conversas do projeto do ChatGPT "Ledger em Go" (*Documentação para ledger em Go* e *Documentação para ledger em Go (1)*) e o código do repositório no commit `9ef1469`.
 > Para instruções de execução, veja o [`README.md`](../README.md).
@@ -188,7 +188,8 @@ Uma conta do **plano de contas**. Define como cada movimentação é classificad
 - `AssetID`: cada conta contábil pertence a um único ativo. Contas com a mesma finalidade são duplicadas por ativo, e, como `Code` é único, cada cópia precisa de um código próprio (ex.: `2001-BRL`, `2001-USD`).
 - `Status`: `ACTIVE` (aceita lançamentos) | `INACTIVE`. Não muda quando operações são contabilizadas.
 
-Exemplo de plano de contas:
+O plano de contas inicial (faixas de código, contas, ativos de cada conta e contabilização das operações) está em [Plano de Contas Inicial](./chart-of-accounts.md).
+Resumo das contas base:
 
 | Código | Conta | Tipo | Saldo normal |
 |---|---|---|---|
@@ -196,8 +197,10 @@ Exemplo de plano de contas:
 | 2001 | Saldo disponível dos usuários | LIABILITY | CREDIT |
 | 2002 | Saldo reservado dos usuários | LIABILITY | CREDIT |
 | 2003 | Saldo retido dos usuários | LIABILITY | CREDIT |
+| 3101 | Conversão de ativos | EQUITY | CREDIT |
 | 4001 | Receita com tarifas | REVENUE | CREDIT |
 | 5001 | Despesas com rendimentos | EXPENSE | DEBIT |
+| 5002 | Despesas com programa de pontos | EXPENSE | DEBIT |
 
 ### 4.9 `LedgerTransaction`: contabilização
 
@@ -223,6 +226,7 @@ Uma linha **imutável** de débito ou crédito no livro-razão. É aqui que os *
 - **Saldos em inteiros na menor unidade do ativo**, com três estados: livre, reservado e retido.
 - **Ativos genéricos** (fiat, cripto, sem lastro) com precisão configurável. As carteiras são criadas pelo código do ativo.
 - **Seed de ativos e cotações** (`make seed`): BRL, USD, EUR, BTC, ETH, USDT e POINTS com uma cotação em USD cada, idempotente e separado das migrações de schema.
+- **Seed do plano de contas inicial** (`make seed`): 47 `LedgerAccount` (uma conta base por ativo, código `BASE-ATIVO`, todas `ACTIVE`), idempotente por `code` e conforme [Plano de Contas Inicial](./chart-of-accounts.md).
 - **Uma carteira por ativo**, ligada a um titular. O titular é criado automaticamente quando não existe, e seu documento é único.
 - **Novas carteiras começam com saldos zerados.** "Excluir" é desativar (`INACTIVE`), e o soft delete preserva o histórico.
 - **Validações de transação**: tipo suportado, valor positivo, carteiras aceitas pelo tipo, carteiras distintas, ativas e do mesmo ativo, e saldo suficiente. As carteiras podem ser de tipos e titulares diferentes.
@@ -358,7 +362,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Entidade de cotações modelada (`AssetPrice`)
 - [x] Entidades de conta externa e chaves de pagamento modeladas (`Account`, `AccountIdentifier`)
 - [x] Seed de ativos suportados
-- [ ] Plano de contas inicial cadastrado (seed de `LedgerAccount`)
+- [x] Plano de contas inicial cadastrado (seed de `LedgerAccount`, ver [`chart-of-accounts.md`](./chart-of-accounts.md))
 - [ ] Validar a compatibilidade entre `NormalBalanceDirection` e `LedgerAccount.Type`
 - [ ] Regras de negócio específicas por `WalletType`
 
