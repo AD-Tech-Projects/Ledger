@@ -8,12 +8,26 @@
 //
 // # Relationships
 //
-//	Owner       1──N    Wallet
-//	Owner       1──N    Account 1──N AccountIdentifier
-//	Account     0..1──N Wallet (a wallet may be linked to one external account)
-//	Asset       1──N    Wallet, AssetPrice (as base or quote asset)
-//	Wallet      0..1──N Transaction (as source or destination)
-//	Transaction 1──1    LedgerTransaction 1──N LedgerEntry N──1 LedgerAccount
+// In "A x:y B", each B is linked to x records of A and each A is linked to y records of B;
+// "0..1" marks an optional link.
+//
+//	Owner             1:N    Wallet
+//	Owner             1:N    Account
+//	Account           1:N    AccountIdentifier
+//	Account           0..1:N Wallet             (a wallet points to at most one external account)
+//	Asset             1:N    Wallet
+//	Asset             1:N    AssetPrice         (as the priced asset, AssetID)
+//	Asset             1:N    AssetPrice         (as the quote asset, QuoteAssetID)
+//	Asset             1:N    Transaction
+//	Asset             1:N    LedgerAccount
+//	Asset             1:N    LedgerEntry
+//	Wallet            0..1:N Transaction        (as source, SourceWalletID)
+//	Wallet            0..1:N Transaction        (as destination, DestinationWalletID)
+//	Transaction       0..1:N Transaction        (reversals, ReversalOriginID)
+//	Transaction       1:0..1 LedgerTransaction  (at most one posting per transaction)
+//	LedgerTransaction 0..1:N LedgerTransaction  (reversals, ReversalOriginID)
+//	LedgerTransaction 1:N    LedgerEntry
+//	LedgerAccount     1:N    LedgerEntry
 //
 // # Three different "accounts"
 //
@@ -34,6 +48,11 @@
 // It is identified by a unique document (CPF/CNPJ in Brazil, SSN/EIN in the United States),
 // which is sensitive personal data: it must be normalized, unique, and never exposed in public
 // audit records. An owner is not an authentication identity; login credentials are a separate concern.
+//
+// Its CountryCode ([CountryCode]) is the jurisdiction of the document. The unique identifier follows
+// the format COUNTRY:TYPE:DOCUMENT (e.g. "BR:INDIVIDUAL:12345678909"), where COUNTRY is the [CountryCode],
+// TYPE is the [OwnerType] and DOCUMENT is the document with everything but letters and digits removed.
+// The whole identifier is converted to uppercase.
 //
 // # Wallet
 //
@@ -68,7 +87,8 @@
 //
 // [AccountIdentifier] is an alias that addresses an [Account] on a specific payment rail
 // without its full bank details, such as a PIX key (CPF, CNPJ, phone, email or random key).
-// An account may have many identifiers.
+// An account may have many identifiers. Its CountryCode ([CountryCode]) is the jurisdiction of the
+// account, which defines the available payment rails; [CountryCode] is shared with [Owner].
 //
 // # Asset and AssetPrice
 //

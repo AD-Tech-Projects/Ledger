@@ -10,8 +10,8 @@ type Account struct {
 	OwnerID string
 	Owner   *Owner
 
-	Kind        AccountKind        // Kind defines whether the bank fields or the crypto fields are filled.
-	CountryCode AccountCountryCode // CountryCode is the jurisdiction of the account, which defines the available payment rails.
+	Kind        AccountKind // Kind defines whether the bank fields or the crypto fields are filled.
+	CountryCode CountryCode // CountryCode is the jurisdiction of the account, which defines the available payment rails.
 
 	Currency        string // Currency is the ISO currency code of the bank account (e.g. BRL, USD).
 	InstitutionName string // InstitutionName is the name of the bank or financial institution.
@@ -33,15 +33,4 @@ type AccountKind string
 const (
 	ACCOUNT_BANK   AccountKind = "BANK"   // Account at a bank or payment institution
 	ACCOUNT_CRYPTO AccountKind = "CRYPTO" // Address on a blockchain network
-)
-
-type AccountCountryCode string
-
-const (
-	COUNTRY_US AccountCountryCode = "US" // United States
-	COUNTRY_BR AccountCountryCode = "BR" // Brazil
-	COUNTRY_EU AccountCountryCode = "EU" // European Union
-
-	// NOTE - unknown country code, used for accounts that do not have a specific country association, such as crypto accounts
-	COUNTRY_UNKNOWN AccountCountryCode = "UNKNOWN"
 )

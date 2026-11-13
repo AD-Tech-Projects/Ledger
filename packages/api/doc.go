@@ -20,13 +20,17 @@
 //	curl -X POST http://localhost:3000/wallet \
 //	  -H 'Content-Type: application/json' \
 //	  -d '{
-//	    "owner":  { "uniqueIdentifier": "12345678909", "ownerType": "INDIVIDUAL" },
+//	    "owner":  { "uniqueIdentifier": "123.456.789-09", "ownerType": "INDIVIDUAL", "countryCode": "BR" },
 //	    "wallet": { "status": "ACTIVE", "walletType": "INVESTMENT", "assetCode": "BRL" }
 //	  }'
 //
 // Request fields:
 //
 //   - ownerType: INDIVIDUAL or COMPANY.
+//   - countryCode: US, BR, EU or empty (unknown). It is the jurisdiction of the owner document.
+//   - uniqueIdentifier: the owner document, with or without punctuation. The owner is looked up and
+//     stored by the identifier COUNTRY:TYPE:DOCUMENT in uppercase, keeping only the letters and digits
+//     of the document (e.g. "BR:INDIVIDUAL:12345678909"); an owner is created when none is found.
 //   - walletType: INVESTMENT or CRYPTO. CHECKING and SAVINGS wallets require an external account (AccountID),
 //     which cannot be informed through the API yet.
 //   - assetCode must reference an asset already registered in the database.
