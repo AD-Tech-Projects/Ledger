@@ -6,6 +6,7 @@ CREATE TABLE "owners" (
   "deleted_at" timestamptz NULL,
   "unique_identifier" text NOT NULL,
   "owner_type" text NOT NULL,
+  "country_code" character varying(2) NOT NULL DEFAULT '',
   PRIMARY KEY ("id")
 );
 -- Create index "idx_owners_deleted_at" to table: "owners"
@@ -20,7 +21,7 @@ CREATE TABLE "external_accounts" (
   "deleted_at" timestamptz NULL,
   "owner_id" uuid NOT NULL,
   "kind" text NOT NULL,
-  "country_code" character varying(7) NULL,
+  "country_code" character varying(2) NULL,
   "currency" text NOT NULL,
   "institution_name" text NULL,
   "branch_code" text NULL,
@@ -146,10 +147,33 @@ CREATE INDEX "idx_wallets_asset_id" ON "wallets" ("asset_id");
 CREATE INDEX "idx_wallets_deleted_at" ON "wallets" ("deleted_at");
 -- Create index "idx_wallets_owner_id" to table: "wallets"
 CREATE INDEX "idx_wallets_owner_id" ON "wallets" ("owner_id");
--- Modify "transactions" table
-ALTER TABLE "transactions" ADD CONSTRAINT "chk_transactions_amount" CHECK (amount > 0), DROP COLUMN "source_account_id", DROP COLUMN "destination_account_id", ADD COLUMN "asset_id" uuid NOT NULL, ADD COLUMN "source_wallet_id" uuid NULL, ADD COLUMN "destination_wallet_id" uuid NULL, ADD COLUMN "reference_id" text NULL, ADD COLUMN "reversal_origin_id" uuid NULL, ADD COLUMN "description" text NOT NULL, ADD COLUMN "completed_at" timestamptz NULL, ADD CONSTRAINT "fk_transactions_asset" FOREIGN KEY ("asset_id") REFERENCES "assets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "fk_transactions_destination_wallet" FOREIGN KEY ("destination_wallet_id") REFERENCES "wallets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "fk_transactions_reversal_origin" FOREIGN KEY ("reversal_origin_id") REFERENCES "transactions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "fk_transactions_source_wallet" FOREIGN KEY ("source_wallet_id") REFERENCES "wallets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- Create "transactions" table
+CREATE TABLE "transactions" (
+  "id" uuid NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "deleted_at" timestamptz NULL,
+  "amount" bigint NOT NULL,
+  "status" text NOT NULL,
+  "transaction_type" text NOT NULL,
+  "asset_id" uuid NOT NULL,
+  "source_wallet_id" uuid NULL,
+  "destination_wallet_id" uuid NULL,
+  "reference_id" text NULL,
+  "reversal_origin_id" uuid NULL,
+  "description" text NOT NULL,
+  "completed_at" timestamptz NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "fk_transactions_asset" FOREIGN KEY ("asset_id") REFERENCES "assets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "fk_transactions_destination_wallet" FOREIGN KEY ("destination_wallet_id") REFERENCES "wallets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "fk_transactions_reversal_origin" FOREIGN KEY ("reversal_origin_id") REFERENCES "transactions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "fk_transactions_source_wallet" FOREIGN KEY ("source_wallet_id") REFERENCES "wallets" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "chk_transactions_amount" CHECK (amount > 0)
+);
 -- Create index "idx_transactions_asset_id" to table: "transactions"
 CREATE INDEX "idx_transactions_asset_id" ON "transactions" ("asset_id");
+-- Create index "idx_transactions_deleted_at" to table: "transactions"
+CREATE INDEX "idx_transactions_deleted_at" ON "transactions" ("deleted_at");
 -- Create index "idx_transactions_destination_wallet_id" to table: "transactions"
 CREATE INDEX "idx_transactions_destination_wallet_id" ON "transactions" ("destination_wallet_id");
 -- Create index "idx_transactions_reference_id" to table: "transactions"
@@ -206,7 +230,3 @@ CREATE INDEX "idx_ledger_entries_deleted_at" ON "ledger_entries" ("deleted_at");
 CREATE INDEX "idx_ledger_entries_ledger_account_id" ON "ledger_entries" ("ledger_account_id");
 -- Create index "idx_ledger_entries_transaction_sequence" to table: "ledger_entries"
 CREATE UNIQUE INDEX "idx_ledger_entries_transaction_sequence" ON "ledger_entries" ("ledger_transaction_id", "sequence");
--- Drop "accounts" table
-DROP TABLE "accounts";
--- Drop "account_holders" table
-DROP TABLE "account_holders";
