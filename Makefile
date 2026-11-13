@@ -1,4 +1,4 @@
-.PHONY: run tidy clean test test-coverage build migrate-create migrate-apply migrate-rollback
+.PHONY: run tidy clean test test-coverage build migrate-create migrate-apply migrate-rollback seed
 
 MAIN_PATH=./main.go
 BINARY_NAME=out/app
@@ -7,6 +7,8 @@ BINARY_NAME=out/app
 
 DB_URL=postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 MIGRATIONS_DIR=file://migrations
+SEEDS_DIR=file://seeds
+SEEDS_REVISIONS_SCHEMA=ledger_seeds
 
 run:
 	@echo "Running the application..."
@@ -49,3 +51,7 @@ migrate-apply:
 migrate-rollback:
 	@echo "Rolling back the last migration..."
 	@atlas migrate rollback --url "$(DB_URL)" --dir "$(MIGRATIONS_DIR)"
+
+seed:
+	@echo "Applying the seeds to the database..."
+	@atlas migrate apply --url "$(DB_URL)" --dir "$(SEEDS_DIR)" --revisions-schema "$(SEEDS_REVISIONS_SCHEMA)" --allow-dirty

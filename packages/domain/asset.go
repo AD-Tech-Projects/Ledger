@@ -25,17 +25,20 @@ type AssetCode string
 
 const (
 	// * FIAT
-	ASSET_USD AssetCode = "USD"
-	ASSET_EUR AssetCode = "EUR"
-	ASSET_BRL AssetCode = "BRL"
+
+	ASSET_USD AssetCode = "USD" // US Dollar, FIAT, 2 decimal places
+	ASSET_EUR AssetCode = "EUR" // Euro, FIAT, 2 decimal places
+	ASSET_BRL AssetCode = "BRL" // Brazilian Real, FIAT, 2 decimal places
 
 	// * CRYPTO
-	ASSET_BTC  AssetCode = "BTC"
-	ASSET_ETH  AssetCode = "ETH"
-	ASSET_USDT AssetCode = "USDT"
+
+	ASSET_BTC  AssetCode = "BTC"  // Bitcoin, CRYPTO, 8 decimal places
+	ASSET_ETH  AssetCode = "ETH"  // Ethereum, CRYPTO, 18 decimal places
+	ASSET_USDT AssetCode = "USDT" // Tether Dollar, CRYPTO, 6 decimal places
 
 	// * UNBACKED
-	ASSET_POINTS AssetCode = "POINTS"
+
+	ASSET_POINTS AssetCode = "POINTS" // ASSET_POINTS is the platform internal currency (UNBACKED, 0 decimal places): 1 point = 0.50 BRL
 )
 
 type AssetStatus string

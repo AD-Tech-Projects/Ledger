@@ -39,7 +39,7 @@ make migrate-apply
 make run
 ```
 
-Assets have no seed yet: insert them manually before creating wallets (see the README).
+Register the supported assets with `make seed` (after `make migrate-apply`).
 
 ### Useful Commands
 
@@ -52,6 +52,7 @@ Assets have no seed yet: insert them manually before creating wallets (see the R
 | `make migrate-create name=<name>`    | Generate a migration from the GORM models (`atlas migrate diff`) |
 | `make migrate-hash`                  | Recompute `migrations/atlas.sum` after a manual migration edit |
 | `make migrate-apply`                 | Apply the migrations to the database configured in `.env`      |
+| `make seed`                          | Seed the supported assets and their USD reference prices (`seeds/`) |
 | `gofmt -l .` / `go vet ./...`        | Formatting and static checks                                   |
 
 `DB_*` variables exported in the shell take precedence over `.env` for `docker compose` and for the application (`godotenv` does not override them). Only `make` reads `.env` directly.
