@@ -75,7 +75,7 @@ Wallet creation looks up the asset by its code, so the supported assets must exi
 make seed   # atlas migrate apply --dir file://seeds (revisions kept in the ledger_seeds schema)
 ```
 
-The seed is idempotent and must run after `make migrate-apply`. The prices are approximate values for development, not real-time quotes.
+The seed also registers the initial chart of accounts (47 `ledger_accounts`, see [`docs/chart-of-accounts.md`](docs/chart-of-accounts.md)). The seed is idempotent and must run after `make migrate-apply`. The prices are approximate values for development, not real-time quotes.
 
 ### 6. Run the application
 
