@@ -28,8 +28,9 @@ func NewWalletHandler(
 }
 
 type createOwnerRequestData struct {
-	UniqueIdentifier string           `json:"uniqueIdentifier"`
-	OwnerType        domain.OwnerType `json:"ownerType"`
+	UniqueIdentifier string             `json:"uniqueIdentifier"`
+	OwnerType        domain.OwnerType   `json:"ownerType"`
+	CountryCode      domain.CountryCode `json:"countryCode"`
 }
 
 type createWalletRequestData struct {
@@ -64,9 +65,10 @@ func (h *WalletHandler) Create(c *gin.Context) {
 	owner := domain.Owner{
 		UniqueIdentifier: body.Owner.UniqueIdentifier,
 		Type:             body.Owner.OwnerType,
+		CountryCode:      body.Owner.CountryCode,
 	}
 
-	existingOrCreatedOwner, err := h.ownerService.FindByUniqueIdentifier(context, owner.UniqueIdentifier)
+	existingOrCreatedOwner, err := h.ownerService.FindByUniqueIdentifier(context, owner.CountryCode, owner.Type, owner.UniqueIdentifier)
 	if err != nil {
 		if errors.Is(err, services.ErrOwnerNotFound) {
 			existingOrCreatedOwner, err = h.ownerService.Create(context, &owner)

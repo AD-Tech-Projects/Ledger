@@ -9,7 +9,7 @@ type AccountModel struct {
 	OwnerID         string      `gorm:"type:uuid;not null;index:idx_external_accounts_owner_currency,priority:1"`
 	Owner           *OwnerModel `gorm:"foreignKey:OwnerID;references:ID"`
 	Kind            string      `gorm:"not null"`
-	CountryCode     string      `gorm:"size:7"`
+	CountryCode     string      `gorm:"size:2"`
 	Currency        string      `gorm:"not null;index:idx_external_accounts_owner_currency,priority:2"`
 	InstitutionName string
 	BranchCode      string
@@ -32,7 +32,7 @@ func AccountToDomain(m *AccountModel) *domain.Account {
 		return nil
 	}
 	account := &domain.Account{ID: m.ID, OwnerID: m.OwnerID, Owner: OwnerToDomain(m.Owner), Kind: domain.AccountKind(m.Kind),
-		CountryCode: domain.AccountCountryCode(m.CountryCode), Currency: m.Currency, InstitutionName: m.InstitutionName,
+		CountryCode: domain.CountryCode(m.CountryCode), Currency: m.Currency, InstitutionName: m.InstitutionName,
 		BranchCode: m.BranchCode, AccountNumber: m.AccountNumber, RoutingCode: m.RoutingCode,
 		IBAN: m.IBAN, BIC: m.BIC, CryptoNetwork: m.CryptoNetwork,
 		CryptoAddress: m.CryptoAddress, CryptoMemo: m.CryptoMemo}

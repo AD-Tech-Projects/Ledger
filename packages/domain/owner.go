@@ -6,8 +6,8 @@ type Owner struct {
 
 	Type OwnerType
 
-	// NOTE - unique document identifier for the owner, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
-	UniqueIdentifier string
+	CountryCode      CountryCode // CountryCode is the jurisdiction of the owner's unique document.
+	UniqueIdentifier string      // Unique document identifier for the owner, such as CPF/CNPJ in Brazil, or SSN/EIN in the United States
 }
 
 type OwnerType string

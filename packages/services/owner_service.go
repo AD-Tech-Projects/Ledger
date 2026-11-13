@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/google/uuid"
 
@@ -28,9 +30,19 @@ var (
 	ErrOwnerNotFound = errors.New("owner not found")
 )
 
-func (s *OwnerService) FindByUniqueIdentifier(ctx context.Context, uniqueIdentifier string) (*domain.Owner, error) {
-	if uniqueIdentifier == "" {
+func (s *OwnerService) FindByUniqueIdentifier(
+	ctx context.Context,
+	countryCode domain.CountryCode,
+	ownerType domain.OwnerType,
+	document string,
+) (*domain.Owner, error) {
+	if document == "" {
 		return nil, fmt.Errorf("unique identifier is required")
+	}
+
+	uniqueIdentifier := document
+	if !isOwnerUniqueIdentifierBuilt(document) {
+		uniqueIdentifier = buildOwnerUniqueIdentifier(countryCode, ownerType, document)
 	}
 
 	owner := &domain.Owner{UniqueIdentifier: uniqueIdentifier}
@@ -55,9 +67,30 @@ func (s *OwnerService) Create(ctx context.Context, owner *domain.Owner) (*domain
 		owner.ID = uuid.NewString()
 	}
 
+	if !isOwnerUniqueIdentifierBuilt(owner.UniqueIdentifier) {
+		owner.UniqueIdentifier = buildOwnerUniqueIdentifier(owner.CountryCode, owner.Type, owner.UniqueIdentifier)
+	}
+
 	if err := s.ownerRepository.Create(ctx, owner); err != nil {
 		return nil, fmt.Errorf("failed to create owner: %w", err)
 	}
 
 	return owner, nil
+}
+
+// An identifier is considered already built when it has the three parts COUNTRY:TYPE:DOCUMENT
+func isOwnerUniqueIdentifierBuilt(identifier string) bool {
+	return len(strings.Split(identifier, ":")) == 3
+}
+
+// Builds the identifier in the format COUNTRY:TYPE:DOCUMENT in uppercase, keeping only letters and digits of the document
+func buildOwnerUniqueIdentifier(countryCode domain.CountryCode, ownerType domain.OwnerType, document string) string {
+	normalizedDocument := strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return r
+		}
+		return -1
+	}, document)
+
+	return strings.ToUpper(fmt.Sprintf("%s:%s:%s", countryCode, ownerType, normalizedDocument))
 }

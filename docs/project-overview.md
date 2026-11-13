@@ -38,7 +38,7 @@ Segurança, testes e observabilidade acompanham todas as fases. O que fica para 
 
 O projeto tem uma API HTTP em camadas (API → Handlers → Services → Domain → Repositories → PostgreSQL/GORM) que permite:
 
-- criar, listar, consultar e desativar **carteiras**, criando o **titular** automaticamente quando ele não existe;
+- criar, listar, consultar e desativar **carteiras**, criando o **titular** automaticamente quando ele não existe (buscado pelo identificador `PAÍS:TIPO:DOCUMENTO`);
 - criar, listar e consultar **transações** de 12 tipos, que alteram os saldos das carteiras dentro de uma transação de banco atômica.
 
 As entidades contábeis (`LedgerAccount`, `LedgerTransaction`, `LedgerEntry`), de ativos (`Asset`, `AssetPrice`) e de contas externas (`Account`, `AccountIdentifier`) já estão **modeladas e mapeadas no banco**. Ainda **não existem serviços que as usem**: as transações alteram os saldos das carteiras, mas ainda **não geram lançamentos contábeis**.
@@ -65,33 +65,53 @@ Decisões de modelagem:
 
 > A documentação de referência das entidades, em inglês, fica em [`packages/domain/doc.go`](../packages/domain/doc.go) (`go doc ./packages/domain`).
 
-```text
-Owner       1──N    Wallet
-Owner       1──N    Account 1──N AccountIdentifier
-Account     0..1──N Wallet (uma carteira pode apontar para uma conta externa)
-Asset       1──N    Wallet, AssetPrice (como ativo base ou de cotação)
-Wallet      0..1──N Transaction (como origem ou destino)
-Transaction 1──1    LedgerTransaction 1──N LedgerEntry N──1 LedgerAccount
-```
+Associações entre entidades. Na relação `x:y`, cada registro da segunda entidade se liga a `x` registros da primeira, e cada registro da primeira se liga a `y` registros da segunda. `0..1` indica um vínculo opcional.
+
+| Entidade | Relação | Entidade | Descrição |
+|---|---|---|---|
+| `Owner` | 1:N | `Wallet` | |
+| `Owner` | 1:N | `Account` | |
+| `Account` | 1:N | `AccountIdentifier` | |
+| `Account` | 0..1:N | `Wallet` | Cada carteira aponta para no máximo uma conta externa (`AccountID`), mas uma conta pode ser associada a várias carteiras |
+| `Asset` | 1:N | `Wallet` | |
+| `Asset` | 1:N | `AssetPrice` | Como ativo cotado (`AssetID`) |
+| `Asset` | 1:N | `AssetPrice` | Como ativo de cotação (`QuoteAssetID`) |
+| `Asset` | 1:N | `Transaction` | |
+| `Asset` | 1:N | `LedgerAccount` | |
+| `Asset` | 1:N | `LedgerEntry` | |
+| `Wallet` | 0..1:N | `Transaction` | Como origem (`SourceWalletID`) |
+| `Wallet` | 0..1:N | `Transaction` | Como destino (`DestinationWalletID`) |
+| `Transaction` | 0..1:N | `Transaction` | Reversões (`ReversalOriginID`) |
+| `Transaction` | 1:0..1 | `LedgerTransaction` | No máximo uma contabilização por transação (`TransactionID`) |
+| `LedgerTransaction` | 0..1:N | `LedgerTransaction` | Reversões (`ReversalOriginID`) |
+| `LedgerTransaction` | 1:N | `LedgerEntry` | |
+| `LedgerAccount` | 1:N | `LedgerEntry` | |
+
+Regras dessas associações que o schema do banco não garante:
+
+- A conta externa de uma carteira deve pertencer ao mesmo titular da carteira. Hoje isso não é validado.
+- Uma transação pode ter várias reversões no banco (inclusive `FAILED`), mas o serviço só aceita uma reversão `COMPLETED` por original.
+- O ativo de um `LedgerEntry` deve ser o mesmo da sua `LedgerAccount`.
 
 Há três "contas" diferentes, e elas não devem ser confundidas:
 
 | Entidade | Representa | Pertence a | Guarda saldo? |
 |---|---|---|---|
-| `Wallet` | Posição do titular em um ativo **dentro da plataforma** | Um titular | Sim (projeção operacional) |
+| `Wallet` | Posição do titular em um ativo **dentro da plataforma** | Um titular (owner) | Sim (projeção operacional) |
 | `Account` | Conta **externa** do titular (banco ou endereço cripto) | Um titular (pode servir várias carteiras) | Não |
 | `LedgerAccount` | Conta do **plano de contas contábil** | O sistema | Não (calculado pelos lançamentos) |
 
 ### 4.1 `Owner`: titular
 
-A pessoa física (`INDIVIDUAL`) ou jurídica (`COMPANY`) dona das carteiras e contas externas. Antes se chamava `AccountHolder` mas foi renomeada para `Owner` por não ter vínculo direto a uma conta e sim a uma carteira.
+A pessoa física (`INDIVIDUAL`) ou jurídica (`COMPANY`) dona das carteiras e contas externas. Antes se chamava `AccountHolder` e foi renomeada para `Owner` porque é dona de várias carteiras e contas externas, e não de uma única conta.
 
-- `UniqueIdentifier`: documento único (CPF/CNPJ no Brasil, SSN/EIN nos EUA), com índice único no banco. É dado pessoal sensível: deve ser normalizado e nunca aparecer em registros públicos de auditoria. Está planejado guardá-lo criptografado, com um HMAC determinístico para verificar a unicidade.
+- `CountryCode`: país (jurisdição) do documento do titular, do tipo `CountryCode` compartilhado com `Account`: `US`, `BR`, `EU` ou `COUNTRY_UNKNOWN`, representado por string vazia. No banco é `NOT NULL` com padrão `''` (desconhecido), para que os titulares já existentes continuem válidos.
+- `UniqueIdentifier`: documento único (CPF/CNPJ no Brasil, SSN/EIN nos EUA), com índice único no banco. O formato do identificador é `PAÍS:TIPO:DOCUMENTO` (ex.: `BR:INDIVIDUAL:12345678909`), em que `PAÍS` é o `CountryCode`, `TIPO` é o `OwnerType` e `DOCUMENTO` é o documento normalizado, sem pontuação, espaços ou símbolos (só letras e dígitos). O identificador inteiro é convertido para maiúsculas, então `ab12` e `AB12` geram o mesmo valor. O identificador é montado por `buildOwnerUniqueIdentifier` (em `services/owner_service.go`), usada tanto na criação (`Create`) quanto na consulta (`FindByUniqueIdentifier`, que recebe o país, o tipo e o documento). Um valor que já tem três partes separadas por `:` é considerado pronto e é usado como está. A API recebe o documento com ou sem pontuação, junto com `ownerType` e `countryCode`. É dado pessoal sensível: deve ser normalizado e nunca aparecer em registros públicos de auditoria. Está planejado guardá-lo criptografado, com um HMAC determinístico para verificar a unicidade.
 - O `Owner` não é uma identidade de autenticação. Login e senha serão uma responsabilidade separada.
 
 ### 4.2 `Wallet`: carteira
 
-A posição financeira de um titular em **um único ativo** dentro da plataforma, por exemplo "carteira BRL do João". Antes se chamava `Account` e foi renomeada para não ser confundida com `LedgerAccount`.
+A posição financeira de um titular em **um único ativo** dentro da plataforma, por exemplo "carteira BRL do João". Antes se chamava `Account` e foi renomeada para não ser confundida com [Account (Conta Externa)](#43-account-conta-externa) ou `LedgerAccount`.
 
 - **Um ativo por carteira.** Quem tem BRL e BTC tem duas carteiras. Isso facilita validar, contabilizar e conciliar. Uma restrição `UNIQUE (owner_id, asset_id)` opcional está em avaliação.
 - **Saldos**, em inteiros na menor unidade do ativo. Os três estados são mutuamente exclusivos, então o total é a soma deles:
@@ -106,7 +126,7 @@ A posição financeira de um titular em **um único ativo** dentro da plataforma
 - `Type` (`WalletType`) define **para que** a carteira serve: `CHECKING` (pagamentos), `SAVINGS` (guardar recursos), `INVESTMENT` (investimentos), `CRYPTO` (custódia de cripto). Já `Asset.Type` define **o que** ela guarda. `CHECKING` e `SAVINGS` exigem uma conta externa (validado em `services/wallet_validate.go`).
 - `Status`: `ACTIVE` | `INACTIVE`. "Excluir" uma carteira é desativá-la, o que preserva o histórico.
 - `Version`: reservado para optimistic locking (ainda não aplicado).
-- `AccountID`: conta externa opcional, usada como origem de depósitos e destino de saques.
+- `AccountID`: conta externa opcional, usada como origem de depósitos e destino de saques. Uma carteira aponta para no máximo uma conta externa, e uma conta externa pode servir várias carteiras do mesmo titular.
 
 ### 4.3 `Account`: conta externa
 
@@ -117,7 +137,7 @@ A conta financeira do titular **fora da plataforma**. É a origem e o destino da
 - `Kind`: `BANK` (banco ou instituição de pagamento) ou `CRYPTO` (endereço em uma blockchain). Define quais campos são preenchidos.
 - Campos bancários: `Currency`, `InstitutionName`, `BranchCode` (agência), `AccountNumber`, `RoutingCode` (código de compensação do país), `IBAN`, `BIC/SWIFT`.
 - Campos cripto: `CryptoNetwork`, `CryptoAddress`, `CryptoMemo` (memo/tag exigido por algumas redes).
-- `CountryCode`: `US`, `BR`, `EU` ou `UNKNOWN` (ex.: contas cripto).
+- `CountryCode`: país da conta, do tipo `CountryCode` compartilhado com `Owner` (`US`, `BR`, `EU` ou `COUNTRY_UNKNOWN`, representado por string vazia, ex.: contas cripto).
 
 ### 4.4 `AccountIdentifier`: chave de pagamento
 
@@ -163,7 +183,7 @@ Uma conta do **plano de contas**. Define como cada movimentação é classificad
 - `Type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`.
 - `NormalBalanceDirection`: o lado que **aumenta** o saldo da conta. `ASSET` e `EXPENSE` aumentam por `DEBIT`; `LIABILITY`, `EQUITY` e `REVENUE` aumentam por `CREDIT`. O campo serve para **interpretar** o saldo, não para restringir lançamentos: uma conta de ativo também recebe créditos. Ele deve ser compatível com `Type`.
 - `Code` (único) e `Name`. Por exemplo, `2001 - Saldo disponível dos usuários`.
-- `AssetID`: contas com a mesma finalidade podem ser duplicadas por ativo.
+- `AssetID`: cada conta contábil pertence a um único ativo. Contas com a mesma finalidade são duplicadas por ativo, e, como `Code` é único, cada cópia precisa de um código próprio (ex.: `2001-BRL`, `2001-USD`).
 - `Status`: `ACTIVE` (aceita lançamentos) | `INACTIVE`. Não muda quando operações são contabilizadas.
 
 Exemplo de plano de contas:
@@ -362,6 +382,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Desativar carteira preservando o histórico
 - [x] Novas carteiras com saldos zerados
 - [ ] Vincular conta externa (`Account`) pela API, habilitando `CHECKING` e `SAVINGS`
+- [ ] Validar que a conta externa de uma carteira pertence ao mesmo titular
 - [ ] CRUD de contas externas e chaves de pagamento
 - [ ] Endpoints de ativos e cotações
 
