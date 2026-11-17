@@ -499,7 +499,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [ ] Validar o equilíbrio débito = crédito por ativo
 - [ ] Lançamentos imutáveis (bloquear `UPDATE`/`DELETE` depois de `POSTED`)
 - [ ] Referência à carteira afetada em `LedgerEntry`
-- [ ] Contas contábeis por estado de saldo (disponível, reservado, retido)
+- [x] Contas contábeis por estado de saldo (disponível, reservado, retido: `2001`, `2002` e `2003` no seed do plano de contas)
 - [ ] Reversões contábeis ligadas à original, sem reversão dupla
 - [ ] Idempotência das requisições (`IdempotencyKey`)
 - [x] Bloqueio pessimista (`SELECT ... FOR UPDATE`) em ordem determinística
