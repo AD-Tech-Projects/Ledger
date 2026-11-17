@@ -21,7 +21,7 @@
 //	  -H 'Content-Type: application/json' \
 //	  -d '{
 //	    "owner":  { "uniqueIdentifier": "123.456.789-09", "ownerType": "INDIVIDUAL", "countryCode": "BR" },
-//	    "wallet": { "status": "ACTIVE", "walletType": "INVESTMENT", "assetCode": "BRL" }
+//	    "wallet": { "status": "ACTIVE", "walletType": "CHECKING_CUSTODY", "assetCode": "BRL" }
 //	  }'
 //
 // Request fields:
@@ -31,8 +31,9 @@
 //   - uniqueIdentifier: the owner document, with or without punctuation. The owner is looked up and
 //     stored by the identifier COUNTRY:TYPE:DOCUMENT in uppercase, keeping only the letters and digits
 //     of the document (e.g. "BR:INDIVIDUAL:12345678909"); an owner is created when none is found.
-//   - walletType: INVESTMENT or CRYPTO. CHECKING and SAVINGS wallets require an external account (AccountID),
-//     which cannot be informed through the API yet.
+//   - walletType: CHECKING_CUSTODY, SAVINGS, INVESTMENT or CRYPTO_CUSTODY. CHECKING_EXTERNAL and CRYPTO_EXTERNAL
+//     wallets require an external account (AccountID), which cannot be informed through the API yet.
+//     Invalid wallets are rejected with 400.
 //   - assetCode must reference an asset already registered in the database.
 //   - Every wallet starts with its three balances (free, reserved and hold) set to zero.
 //

@@ -13,11 +13,11 @@
 
 ## Faixas de código
 
-A base do código tem quatro dígitos e segue a hierarquia classe → grupo → conta:
+A base do código tem quatro dígitos e segue a hierarquia classe → grupo → conta. O significado de cada tipo de conta (`LedgerAccountType`) está na seção 4.8 do [Contexto do Projeto](./project-overview.md#48-ledgeraccount-conta-contábil).
 
 | Posição | Significado | Valores |
 |---|---|---|
-| 1º dígito | Classe: o tipo da conta (`LedgerAccountType`) | `1` `ASSET`, `2` `LIABILITY`, `3` `EQUITY`, `4` `REVENUE`, `5` `EXPENSE` |
+| 1º dígito | Classe: o tipo da conta (`LedgerAccountType`) | 1: `ASSET`, 2: `LIABILITY`, 3: `EQUITY`, 4: `REVENUE`, 5: `EXPENSE` |
 | 2º dígito | Grupo dentro do tipo | `0` a `9` (ex.: `20xx` obrigações com os titulares, `31xx` conversão entre ativos) |
 | 3º e 4º dígitos | Número sequencial da conta dentro do grupo | `01` a `99` |
 

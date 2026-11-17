@@ -58,7 +58,11 @@
 //
 // [Wallet] is an owner's financial position in a single asset inside the platform
 // (e.g. "João's BRL wallet"). It was previously called Account and was renamed to avoid
-// confusion with [LedgerAccount]. An owner that holds several assets has several wallets.
+// confusion with [LedgerAccount]. An owner that holds several assets has several wallets, and may also hold
+// several wallets of the same asset with different types (e.g. a CHECKING_CUSTODY and a SAVINGS wallet in BRL).
+// The planned uniqueness rule is one ACTIVE wallet per asset, owner and type (ASSET:OWNER:TYPE): inactive wallets
+// do not count, so a deactivated wallet keeps its history and a new one of the same asset and type can be created.
+// It is not enforced yet.
 //
 // A wallet has three mutually exclusive balance states, all stored as integers in the smallest
 // unit of the asset (the total balance is their sum):
@@ -72,10 +76,19 @@
 // These balances are a projection used for fast reads and validations. They must always be
 // reconcilable with, and reconstructable from, the ledger entries.
 //
-// [WalletType] describes what the wallet is used for (checking, savings, investment, crypto),
-// while [AssetType] describes what it stores. Checking and savings wallets must be linked to an
-// external [Account]. Deleting a wallet is modeled as
-// deactivation, so its history is preserved.
+// [WalletType] describes what the wallet is used for, while [AssetType] describes what it stores:
+//
+//   - CHECKING_CUSTODY: deposits, withdrawals and internal transfers, without yield (like a checking
+//     account); it may have an external [Account] to receive funds.
+//   - CHECKING_EXTERNAL: payments to bank accounts outside the platform; it must have an external [Account].
+//   - SAVINGS: funds that may earn yield, such as the CDI (like a savings account); it has no external [Account].
+//   - INVESTMENT: funds allocated to investments, locked until their redemption or maturity.
+//   - CRYPTO_CUSTODY: custody of a crypto asset inside the platform, with no external [Account] and no yield.
+//   - CRYPTO_EXTERNAL: transfers to a crypto wallet outside the platform; it must have an external [Account]
+//     (a crypto address).
+//
+// Only the external account rules are enforced so far. Deleting a wallet is modeled as deactivation,
+// so its history is preserved.
 //
 // # Account and AccountIdentifier
 //

@@ -16,6 +16,10 @@ func (e *walletValidationError) Error() string {
 	return "WalletValidationError:" + e.message
 }
 
+func (e *walletValidationError) Unwrap() error {
+	return ErrInvalidWallet
+}
+
 func validateWallet(wallet *domain.Wallet) error {
 	if wallet == nil {
 		return &walletValidationError{message: "wallet is required"}
@@ -39,16 +43,18 @@ func validateWallet(wallet *domain.Wallet) error {
 		return &walletValidationError{message: "wallet status is invalid"}
 	}
 
-	switch wallet.Type {
-	case domain.WALLET_CHECKING, domain.WALLET_SAVINGS, domain.WALLET_INVESTMENT, domain.WALLET_CRYPTO:
-	default:
+	accountRule, ok := walletTypeAccountRules[wallet.Type]
+	if !ok {
 		return &walletValidationError{message: "wallet type is invalid"}
 	}
 
-	if walletTypeRequiresAccount(wallet.Type) {
-		if wallet.AccountID == nil {
-			return &walletValidationError{message: "wallet type requires an external account"}
-		}
+	switch {
+	case accountRule == accountRequired && wallet.AccountID == nil:
+		return &walletValidationError{message: "wallet type requires an external account"}
+	case accountRule == accountForbidden && wallet.AccountID != nil:
+		return &walletValidationError{message: "wallet type does not accept an external account"}
+	}
+	if wallet.AccountID != nil {
 		if _, err := uuid.Parse(*wallet.AccountID); err != nil {
 			return &walletValidationError{message: "external account id must be a valid UUID"}
 		}
@@ -57,9 +63,22 @@ func validateWallet(wallet *domain.Wallet) error {
 	return nil
 }
 
-// walletTypeRequiresAccount reports whether wallets of the given type must be linked to an external account.
-func walletTypeRequiresAccount(walletType domain.WalletType) bool {
-	return walletType == domain.WALLET_CHECKING || walletType == domain.WALLET_SAVINGS
+type accountRequirement int
+
+const (
+	accountForbidden accountRequirement = iota // The wallet must not be linked to an external account
+	accountOptional                            // The wallet may be linked to an external account
+	accountRequired                            // The wallet must be linked to an external account
+)
+
+// walletTypeAccountRules defines the supported wallet types and whether each one must, may or must not be linked to an external account
+var walletTypeAccountRules = map[domain.WalletType]accountRequirement{
+	domain.WALLET_CHECKING_CUSTODY:  accountOptional, // external account that receives funds
+	domain.WALLET_CHECKING_EXTERNAL: accountRequired, // bank account outside the platform that receives the payments
+	domain.WALLET_SAVINGS:           accountForbidden,
+	domain.WALLET_INVESTMENT:        accountOptional, // external account that receives investment returns
+	domain.WALLET_CRYPTO_CUSTODY:    accountForbidden,
+	domain.WALLET_CRYPTO_EXTERNAL:   accountRequired, // crypto address outside the platform that receives the transfers
 }
 
 func validateHoldBalance(wallet *domain.Wallet, amount int64) error {
