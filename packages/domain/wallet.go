@@ -27,10 +27,12 @@ type Wallet struct {
 type WalletType string
 
 const (
-	WALLET_CHECKING   WalletType = "CHECKING"   // Payments and transfers; requires an external account
-	WALLET_SAVINGS    WalletType = "SAVINGS"    // Storage of funds; requires an external account
-	WALLET_INVESTMENT WalletType = "INVESTMENT" // Investments that may generate yield
-	WALLET_CRYPTO     WalletType = "CRYPTO"     // Custody of crypto assets
+	WALLET_CHECKING_CUSTODY  WalletType = "CHECKING_CUSTODY"  // Deposits, withdrawals and internal transfers, without yield (like a checking account); may have an external account to receive funds
+	WALLET_CHECKING_EXTERNAL WalletType = "CHECKING_EXTERNAL" // Payments to bank accounts outside the platform; requires an external account
+	WALLET_SAVINGS           WalletType = "SAVINGS"           // Funds that may earn yield, such as the CDI (like a savings account); has no external account
+	WALLET_INVESTMENT        WalletType = "INVESTMENT"        // Funds allocated to investments, locked until their redemption or maturity
+	WALLET_CRYPTO_CUSTODY    WalletType = "CRYPTO_CUSTODY"    // Custody of a crypto asset inside the platform; has no external account and no yield
+	WALLET_CRYPTO_EXTERNAL   WalletType = "CRYPTO_EXTERNAL"   // Transfers to a crypto wallet outside the platform; requires an external account (crypto address)
 )
 
 type WalletStatus string

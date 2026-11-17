@@ -138,7 +138,7 @@ func TestValidateTransactionRejectsInvalidTransactions(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING, &balances{free: 100})
+			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, &balances{free: 100})
 			destination := newTestWallet("destination", domain.WALLET_INVESTMENT, &balances{free: 100})
 			if test.changeSource != nil {
 				test.changeSource(source)
@@ -191,8 +191,8 @@ func TestValidateReversalRejectsInvalidOrigins(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING, &balances{free: 100})
-			destination := newTestWallet("destination", domain.WALLET_CHECKING, &balances{free: 100})
+			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, &balances{free: 100})
+			destination := newTestWallet("destination", domain.WALLET_CHECKING_CUSTODY, &balances{free: 100})
 			origin := testTransaction(domain.TRANSACTION_TRANSFER, 50, source, destination)
 			origin.Status = domain.TRANSACTION_COMPLETED
 			reversal := testReversal(origin, source, destination)

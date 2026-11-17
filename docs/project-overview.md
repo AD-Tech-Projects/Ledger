@@ -103,7 +103,7 @@ Há três "contas" diferentes, e elas não devem ser confundidas:
 
 ### 4.1 `Owner`: titular
 
-A pessoa física (`INDIVIDUAL`) ou jurídica (`COMPANY`) dona das carteiras e contas externas. Antes se chamava `AccountHolder` e foi renomeada para `Owner` porque é dona de várias carteiras e contas externas, e não de uma única conta.
+A pessoa física (ownerType: `INDIVIDUAL`) ou jurídica (ownerType: `COMPANY`) dona das carteiras e contas externas. Antes se chamava `AccountHolder` e foi renomeada para `Owner` porque é dona de várias carteiras e contas externas, e não de uma única conta.
 
 - `CountryCode`: país (jurisdição) do documento do titular, do tipo `CountryCode` compartilhado com `Account`: `US`, `BR`, `EU` ou `COUNTRY_UNKNOWN`, representado por string vazia. No banco é `NOT NULL` com padrão `''` (desconhecido), para que os titulares já existentes continuem válidos.
 - `UniqueIdentifier`: documento único (CPF/CNPJ no Brasil, SSN/EIN nos EUA), com índice único no banco. O formato do identificador é `PAÍS:TIPO:DOCUMENTO` (ex.: `BR:INDIVIDUAL:12345678909`), em que `PAÍS` é o `CountryCode`, `TIPO` é o `OwnerType` e `DOCUMENTO` é o documento normalizado, sem pontuação, espaços ou símbolos (só letras e dígitos). O identificador inteiro é convertido para maiúsculas, então `ab12` e `AB12` geram o mesmo valor. O identificador é montado por `buildOwnerUniqueIdentifier` (em `services/owner_service.go`), usada tanto na criação (`Create`) quanto na consulta (`FindByUniqueIdentifier`, que recebe o país, o tipo e o documento). Um valor que já tem três partes separadas por `:` é considerado pronto e é usado como está. A API recebe o documento com ou sem pontuação, junto com `ownerType` e `countryCode`. É dado pessoal sensível: deve ser normalizado e nunca aparecer em registros públicos de auditoria. Está planejado guardá-lo criptografado, com um HMAC determinístico para verificar a unicidade.
@@ -113,7 +113,8 @@ A pessoa física (`INDIVIDUAL`) ou jurídica (`COMPANY`) dona das carteiras e co
 
 A posição financeira de um titular em **um único ativo** dentro da plataforma, por exemplo "carteira BRL do João". Antes se chamava `Account` e foi renomeada para não ser confundida com [Account (Conta Externa)](#43-account-conta-externa) ou `LedgerAccount`.
 
-- **Um ativo por carteira.** Quem tem BRL e BTC tem duas carteiras. Isso facilita validar, contabilizar e conciliar. Uma restrição `UNIQUE (owner_id, asset_id)` opcional está em avaliação.
+- **Um ativo por carteira.** Quem tem BRL e BTC tem duas carteiras. Isso facilita validar, contabilizar e conciliar.
+- **Unicidade por `ATIVO:TITULAR:TIPO` entre as carteiras ativas** (planejada, ainda não garantida pelo banco nem pelo serviço). Um titular pode ter várias carteiras do mesmo ativo, desde que de tipos diferentes: uma `CHECKING_CUSTODY` e uma `SAVINGS` em BRL, mas não duas `SAVINGS` `ACTIVE` em BRL. O status entra na regra: carteiras `INACTIVE` não contam, então depois de desativar uma carteira o titular pode criar outra do mesmo ativo e tipo, e o histórico da desativada é preservado. Reativar uma carteira só será permitido se não houver outra `ACTIVE` com o mesmo `ATIVO:TITULAR:TIPO`. No banco, será um índice único parcial em `wallets`: `UNIQUE (asset_id, owner_id, type) WHERE status = 'ACTIVE' AND deleted_at IS NULL`. Um índice comum com o status como quarta coluna não serviria, porque impediria ter duas carteiras `INACTIVE` com o mesmo `ATIVO:TITULAR:TIPO` e faria falhar a desativação da segunda.
 - **Saldos**, em inteiros na menor unidade do ativo. Os três estados são mutuamente exclusivos, então o total é a soma deles:
 
   | Saldo | Significado |
@@ -123,10 +124,21 @@ A posição financeira de um titular em **um único ativo** dentro da plataforma
   | `HoldBalance` | Bloqueado temporariamente por uma restrição ou análise (ex.: disputa). Também é o estado intermediário das transferências |
 
 - Os saldos são uma **projeção**, não a fonte de verdade. Eles precisam poder ser reconstruídos a partir dos lançamentos do ledger e conciliados com eles.
-- `Type` (`WalletType`) define **para que** a carteira serve: `CHECKING` (pagamentos), `SAVINGS` (guardar recursos), `INVESTMENT` (investimentos), `CRYPTO` (custódia de cripto). Já `Asset.Type` define **o que** ela guarda. `CHECKING` e `SAVINGS` exigem uma conta externa (validado em `services/wallet_validate.go`).
+- `Type` (`WalletType`) define **para que** a carteira serve. Já `Asset.Type` define **o que** ela guarda.
+
+  | Constante | Valor | Significado | Conta externa |
+  |---|---|---|---|
+  | `WALLET_CHECKING_CUSTODY` | `CHECKING_CUSTODY` | Como uma conta-corrente: depósitos, saques e transferências internas, sem rendimentos | Opcional, para receber valores |
+  | `WALLET_CHECKING_EXTERNAL` | `CHECKING_EXTERNAL` | Pagamentos para contas bancárias fora da plataforma | Obrigatória |
+  | `WALLET_SAVINGS` | `SAVINGS` | Como uma poupança: recursos que podem render, por exemplo pelo CDI | Não aceita |
+  | `WALLET_INVESTMENT` | `INVESTMENT` | Valores alocados em investimentos, travados até o resgate ou vencimento | Opcional |
+  | `WALLET_CRYPTO_CUSTODY` | `CRYPTO_CUSTODY` | Custódia de um criptoativo dentro da plataforma, sem rendimentos | Não aceita |
+  | `WALLET_CRYPTO_EXTERNAL` | `CRYPTO_EXTERNAL` | Transferências para uma carteira cripto fora da plataforma | Obrigatória (endereço cripto) |
+
+  Só a regra de conta externa é validada hoje (`walletTypeAccountRules`, em `services/wallet_validate.go`). Uma carteira inválida é rejeitada com `400`. As demais regras por tipo, como rendimentos e bloqueio até o resgate, ainda não existem (ver o checklist). O tipo não muda as contas contábeis usadas: todas as carteiras de um ativo usam as mesmas contas do [plano de contas](./chart-of-accounts.md).
 - `Status`: `ACTIVE` | `INACTIVE`. "Excluir" uma carteira é desativá-la, o que preserva o histórico.
 - `Version`: reservado para optimistic locking (ainda não aplicado).
-- `AccountID`: conta externa opcional, usada como origem de depósitos e destino de saques. Uma carteira aponta para no máximo uma conta externa, e uma conta externa pode servir várias carteiras do mesmo titular.
+- `AccountID`: conta externa da carteira, usada como origem de depósitos e destino de saques e pagamentos. É obrigatória, opcional ou proibida conforme o `Type` (tabela acima). Uma carteira aponta para no máximo uma conta externa, e uma conta externa pode servir várias carteiras do mesmo titular.
 
 ### 4.3 `Account`: conta externa
 
@@ -150,8 +162,8 @@ Um apelido que endereça uma `Account` em um trilho de pagamento sem os dados ba
 
 Generaliza a antiga lista fixa de moedas (`USD`, `EUR`, `BRL`). Carteiras, transações, contas contábeis e lançamentos referenciam um ativo.
 
-- `Type`: `FIAT` (BRL, USD, EUR), `CRYPTO` (BTC, ETH, USDT), `UNBACKED` (ex.: `POINTS`).
-- `DecimalPlaces`: a precisão do ativo. Valores são guardados como `valor × 10^DecimalPlaces` em `int64`, **nunca em float**. Exemplos: R$ 100,00 = `10000`; 0,00000001 BTC = `1`.
+- `Type`: Moedas fiduciárias (`FIAT`) como BRL, USD e EUR; Criptomoedas (`CRYPTO`) como BTC, ETH e USDT; Ativos não respaldados (`UNBACKED`) como `POINTS`.
+- `DecimalPlaces`: a precisão do ativo. Valores são guardados como `valor × 10^DecimalPlaces` em `int64`, **nunca em float**. Exemplos: R$ 100,50 = `10050` (2 casas de precisão); 0,00000001 BTC = `1` (8 casas de precisão).
 - Valores de ativos diferentes **nunca são somados nem compensados entre si**.
 
 ### 4.6 `AssetPrice`: cotação
@@ -166,13 +178,27 @@ Histórico de preços de um ativo (`Asset`) expresso em outro (`QuoteAsset`), po
 
 Uma operação financeira pedida à plataforma. Ela descreve **o que** aconteceu: tipo, valor, ativo, carteiras e status. **Como** isso entra na contabilidade é responsabilidade do ledger (`LedgerTransaction` + `LedgerEntry`).
 
-- Tipos (`TransactionType`):
-  - Movimentações: `DEPOSIT`, `WITHDRAWAL`, `TRANSFER`, `REVERSAL`
-  - Receitas, custos e negociação: `YIELD`, `FEE`, `PURCHASE`, `SALE`
-  - Mudança de estado do saldo: `RESERVE`, `RELEASE`, `HOLD`, `UNHOLD`
+- Tipos (`TransactionType`), em três grupos:
+
+  | Grupo | Constante | Valor | Significado |
+  |---|---|---|---|
+  | Movimentações | `TRANSACTION_DEPOSIT` | `DEPOSIT` | Entrada de recursos em uma carteira, normalmente vindos de fora da plataforma |
+  | | `TRANSACTION_WITHDRAWAL` | `WITHDRAWAL` | Saída de recursos de uma carteira, normalmente para fora da plataforma |
+  | | `TRANSACTION_TRANSFER` | `TRANSFER` | Transferência entre duas carteiras da plataforma |
+  | | `TRANSACTION_REVERSAL` | `REVERSAL` | Reversão de uma transação concluída (por erro ou disputa), com o efeito inverso da original |
+  | Receitas, custos e negociação | `TRANSACTION_YIELD` | `YIELD` | Rendimento de investimentos ou de saldo remunerado. Aumenta a quantidade do ativo |
+  | | `TRANSACTION_FEE` | `FEE` | Tarifa cobrada por um serviço ou operação |
+  | | `TRANSACTION_PURCHASE` | `PURCHASE` | Compra de um ativo ou serviço, paga pela carteira de origem |
+  | | `TRANSACTION_SALE` | `SALE` | Venda de um ativo ou serviço, recebida pela carteira de destino |
+  | Mudança de estado do saldo | `TRANSACTION_RESERVE` | `RESERVE` | Reserva de saldo para uma operação agendada ou obrigação futura (livre → reservado) |
+  | | `TRANSACTION_RELEASE` | `RELEASE` | Liberação do saldo reservado (reservado → livre) |
+  | | `TRANSACTION_HOLD` | `HOLD` | Retenção de saldo por uma operação pendente ou disputa (livre → retido) |
+  | | `TRANSACTION_UNHOLD` | `UNHOLD` | Liberação do saldo retido (retido → livre) |
+
+  As carteiras aceitas e o efeito de cada tipo nos saldos estão na seção 5. A contabilização prevista de cada tipo está em [Contabilização das operações](./chart-of-accounts.md#contabilização-das-operações).
 - Status (`TransactionStatus`): `PENDING` → `COMPLETED` | `FAILED`. Transações rejeitadas por regra de negócio também são gravadas, como `FAILED`.
 - `SourceWalletID` e `DestinationWalletID` são opcionais, porque nem toda operação tem os dois lados.
-- `ReferenceID`: identifica a operação ou evento externo que originou a transação.
+- `ReferenceID`: identifica a operação ou evento externo que originou a transação (ex: ID da ordem de compra, ID do agendamento de um pagamento).
 - `ReversalOriginID`: a transação original, quando esta é uma reversão.
 - Uma transação concluída **nunca é editada nem excluída**. Erros são corrigidos com uma reversão.
 
@@ -182,8 +208,18 @@ Uma conta do **plano de contas**. Define como cada movimentação é classificad
 
 - É uma categoria contábil **persistente**, criada na configuração do plano de contas (ou quando surge uma nova necessidade contábil), e **não a cada operação**. Uma mesma conta, como "Saldo disponível dos usuários", recebe lançamentos de milhares de carteiras.
 - **Não guarda saldo.** O saldo é calculado a partir dos `LedgerEntry` dela.
-- `Type`: `ASSET`, `LIABILITY`, `EQUITY`, `REVENUE`, `EXPENSE`.
-- `NormalBalanceDirection`: o lado que **aumenta** o saldo da conta. `ASSET` e `EXPENSE` aumentam por `DEBIT`; `LIABILITY`, `EQUITY` e `REVENUE` aumentam por `CREDIT`. O campo serve para **interpretar** o saldo, não para restringir lançamentos: uma conta de ativo também recebe créditos. Ele deve ser compatível com `Type`.
+- `Type` (`LedgerAccountType`): a natureza contábil da conta.
+
+  | Constante | Valor | Significado | Direção normal | Classe do código |
+  |---|---|---|---|---|
+  | `LEDGER_ACCOUNT_ASSET` | `ASSET` | Ativo: o que a plataforma possui ou custodia (ex.: reservas em bancos e em carteiras cripto) | `DEBIT` | `1` |
+  | `LEDGER_ACCOUNT_LIABILITY` | `LIABILITY` | Passivo: o que a plataforma deve (ex.: os saldos das carteiras dos titulares) | `CREDIT` | `2` |
+  | `LEDGER_ACCOUNT_EQUITY` | `EQUITY` | Patrimônio líquido: capital próprio da plataforma e resultado das conversões entre ativos | `CREDIT` | `3` |
+  | `LEDGER_ACCOUNT_REVENUE` | `REVENUE` | Receita: o que a plataforma ganha (ex.: tarifas cobradas) | `CREDIT` | `4` |
+  | `LEDGER_ACCOUNT_EXPENSE` | `EXPENSE` | Despesa: o que a plataforma gasta (ex.: rendimentos pagos e emissão de pontos) | `DEBIT` | `5` |
+
+  A classe é o primeiro dígito da base do código da conta (ver [Faixas de código](./chart-of-accounts.md#faixas-de-código)).
+- `NormalBalanceDirection`: o lado que **aumenta** o saldo da conta. `ASSET` e `EXPENSE` aumentam por `DEBIT`; `LIABILITY`, `EQUITY` e `REVENUE` aumentam por `CREDIT`. O campo serve para **interpretar** o saldo, não para restringir lançamentos: uma conta de ativo também recebe créditos. Ele deve ser compatível com `Type`. O motivo de cada tipo crescer por um lado está na [equação contábil](#61-partidas-dobradas).
 - `Code` (único) e `Name`. Por exemplo, `2001 - Saldo disponível dos usuários`.
 - `AssetID`: cada conta contábil pertence a um único ativo. Contas com a mesma finalidade são duplicadas por ativo, e, como `Code` é único, cada cópia precisa de um código próprio (ex.: `2001-BRL`, `2001-USD`).
 - `Status`: `ACTIVE` (aceita lançamentos) | `INACTIVE`. Não muda quando operações são contabilizadas.
@@ -227,7 +263,8 @@ Uma linha **imutável** de débito ou crédito no livro-razão. É aqui que os *
 - **Ativos genéricos** (fiat, cripto, sem lastro) com precisão configurável. As carteiras são criadas pelo código do ativo.
 - **Seed de ativos e cotações** (`make seed`): BRL, USD, EUR, BTC, ETH, USDT e POINTS com uma cotação em USD cada, idempotente e separado das migrações de schema.
 - **Seed do plano de contas inicial** (`make seed`): 47 `LedgerAccount` (uma conta base por ativo, código `BASE-ATIVO`, todas `ACTIVE`), idempotente por `code` e conforme [Plano de Contas Inicial](./chart-of-accounts.md).
-- **Uma carteira por ativo**, ligada a um titular. O titular é criado automaticamente quando não existe, e seu documento é único.
+- **Cada carteira guarda um único ativo** e é ligada a um titular. O titular é criado automaticamente quando não existe, e seu documento é único.
+- **Seis tipos de carteira** (`WalletType`), com a regra de conta externa de cada tipo validada na criação: obrigatória em `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL`, proibida em `SAVINGS` e `CRYPTO_CUSTODY`, opcional em `CHECKING_CUSTODY` e `INVESTMENT`.
 - **Novas carteiras começam com saldos zerados.** "Excluir" é desativar (`INACTIVE`), e o soft delete preserva o histórico.
 - **Validações de transação**: tipo suportado, valor positivo, carteiras aceitas pelo tipo, carteiras distintas, ativas e do mesmo ativo, e saldo suficiente. As carteiras podem ser de tipos e titulares diferentes.
 - **Transferência em duas etapas via retenção**: origem livre → origem retida → destino retido → destino livre. Isso impede que uma transferência fique pela metade.
@@ -268,6 +305,48 @@ Toda movimentação registra **pelo menos dois lançamentos**, e em cada transa�
 | Passivo, Patrimônio líquido, Receita | Crédito | Débito |
 
 O saldo de uma conta contábil é **Débitos − Créditos** quando o saldo normal é `DEBIT`, e **Créditos − Débitos** quando é `CREDIT`.
+
+#### Equação contábil
+
+**Débito e crédito são os dois lados de um lançamento** (débito à esquerda, crédito à direita), e não sinônimos de "diminuir" e "aumentar". O efeito de cada lado depende de onde a conta fica na equação contábil:
+
+```
+Ativo = Passivo + Patrimônio líquido
+```
+
+Receitas aumentam o patrimônio líquido e despesas o reduzem. Levando as duas para a equação:
+
+```
+Ativo + Despesas = Passivo + Patrimônio líquido + Receitas
+ (lado do débito)          (lado do crédito)
+```
+
+- As contas do lado esquerdo (`ASSET`, `EXPENSE`) aumentam com débito.
+- As contas do lado direito (`LIABILITY`, `EQUITY`, `REVENUE`) aumentam com crédito.
+- Receita e despesa ficam em lados opostos porque têm efeitos opostos no patrimônio líquido.
+- Como cada transação lança o mesmo valor nos dois lados (Σ débitos = Σ créditos), a equação nunca deixa de fechar.
+
+Na plataforma, o lado de cada conta fica assim:
+
+| Lado | Conta | Representa |
+|---|---|---|
+| Esquerdo | `1001` Reservas da plataforma (ativo) | O dinheiro que bancos e custódias guardam para a plataforma |
+| Direito | `2001`–`2003` Saldos dos usuários (passivo) | O que a plataforma deve aos titulares |
+| Direito | `4001` Receita com tarifas | O que a plataforma ganha, que aumenta o patrimônio líquido |
+| Esquerdo | `5001` e `5002` Despesas | O que a plataforma gasta, que reduz o patrimônio líquido |
+
+O mesmo lado pode aumentar uma conta e diminuir outra. Quem decide é o tipo da conta:
+
+| Operação | Débito | Crédito | Efeito |
+|---|---|---|---|
+| Depósito de R$ 100 | `1001` (ativo) | `2001` (passivo) | As duas **aumentam**: a plataforma tem mais dinheiro e deve mais ao titular |
+| Saque de R$ 30 | `2001` (passivo) | `1001` (ativo) | As duas **diminuem** |
+| Tarifa de R$ 2 | `2001` (passivo) | `4001` (receita) | O que é devido ao titular diminui, e a receita aumenta |
+| Rendimento de R$ 5 | `5001` (despesa) | `2001` (passivo) | A despesa aumenta, e o que é devido ao titular aumenta |
+
+A posição dos ativos no lado do débito é uma **convenção histórica** das partidas dobradas, que antes se chamavam "Deve" (débito) e "Haver" (crédito). Na página de cada pessoa, o débito registrava o que ela devia ao comerciante (um direito dele, ou seja, um ativo), e o crédito registrava o que ela entregou a ele (uma dívida dele, ou seja, um passivo). O sistema funcionaria com os lados invertidos: o que importa é que fiquem opostos e que os dois lados sempre fechem.
+
+Por isso um depósito é um **crédito** no saldo do titular, assim como o "crédito na conta" do extrato bancário. Do ponto de vista da plataforma, o saldo do titular é uma dívida com ele, e o passivo aumenta com crédito.
 
 Regras: equilíbrio, atomicidade, imutabilidade, reversão (em vez de edição), separação por ativo e rastreabilidade (todo lançamento pertence a uma transação identificável).
 
@@ -346,7 +425,8 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - As transações **alteram os saldos diretamente** e não geram `LedgerTransaction` nem `LedgerEntry`.
 - `DEPOSIT` e `WITHDRAWAL` alteram só a carteira interna. A contrapartida externa (conta bancária ou contábil, como as reservas da plataforma) ainda não é registrada.
 - `REVERSAL` desfaz o efeito nos saldos, mas ainda não gera lançamentos contábeis invertidos.
-- Carteiras `CHECKING` e `SAVINGS` não podem ser criadas pela API, porque ela não recebe `AccountID`.
+- Carteiras `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL` não podem ser criadas pela API, porque ela não recebe `AccountID`.
+- A unicidade `ATIVO:TITULAR:TIPO` entre as carteiras ativas ainda não é garantida: o mesmo titular pode ter duas carteiras `ACTIVE` do mesmo ativo e tipo.
 
 ## 8. Checklist de funcionalidades e conceitos
 
@@ -364,7 +444,10 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Seed de ativos suportados
 - [x] Plano de contas inicial cadastrado (seed de `LedgerAccount`, ver [`chart-of-accounts.md`](./chart-of-accounts.md))
 - [ ] Validar a compatibilidade entre `NormalBalanceDirection` e `LedgerAccount.Type`
-- [ ] Regras de negócio específicas por `WalletType`
+- [x] Regra de conta externa por `WalletType` (obrigatória, opcional ou proibida)
+- [ ] Aceitar `YIELD` só em carteiras que rendem (rejeitar em `CHECKING_CUSTODY` e `CRYPTO_CUSTODY`)
+- [ ] Travar o saldo de `INVESTMENT` até o resgate ou vencimento do investimento
+- [ ] Usar `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL` nos pagamentos e transferências para fora da plataforma
 
 ### Persistência
 
@@ -379,7 +462,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Migração versionada sincronizada com os modelos atuais
 - [x] `UNIQUE (ledger_transaction_id, sequence)` em `ledger_entries`
 - [x] Constraints `CHECK` (valor > 0, direção válida, saldos ≥ 0)
-- [ ] `UNIQUE (owner_id, asset_id)` em `wallets` (se for regra de negócio)
+- [ ] Unicidade `ATIVO:TITULAR:TIPO` entre as carteiras `ACTIVE` (índice único parcial `UNIQUE (asset_id, owner_id, type) WHERE status = 'ACTIVE' AND deleted_at IS NULL` em `wallets`, com erro de validação na criação e na reativação)
 
 ### Carteiras e titulares
 
@@ -388,7 +471,7 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Consultar carteira com ativo, titular e conta externa
 - [x] Desativar carteira preservando o histórico
 - [x] Novas carteiras com saldos zerados
-- [ ] Vincular conta externa (`Account`) pela API, habilitando `CHECKING` e `SAVINGS`
+- [ ] Vincular conta externa (`Account`) pela API, habilitando `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL`
 - [ ] Validar que a conta externa de uma carteira pertence ao mesmo titular
 - [ ] CRUD de contas externas e chaves de pagamento
 - [ ] Endpoints de ativos e cotações

@@ -41,7 +41,7 @@ func TestApplyTransactionCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING, test.source)
+			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
 			destination := newTestWallet("destination", domain.WALLET_INVESTMENT, test.destination)
 			transaction := testTransaction(test.transactionType, 50, source, destination)
 
@@ -80,8 +80,8 @@ func TestApplyTransactionInsufficientBalanceKeepsWalletsUnchanged(t *testing.T) 
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING, test.source)
-			destination := newTestWallet("destination", domain.WALLET_CHECKING, test.destination)
+			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
+			destination := newTestWallet("destination", domain.WALLET_CHECKING_CUSTODY, test.destination)
 			transaction := testTransaction(test.transactionType, 150, source, destination)
 
 			if err := validateTransaction(transaction); err != nil {
@@ -125,7 +125,7 @@ func TestReversalRestoresOriginalBalances(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING, test.source)
+			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
 			destination := newTestWallet("destination", domain.WALLET_INVESTMENT, test.destination)
 
 			origin := testTransaction(test.transactionType, 50, source, destination)
@@ -152,8 +152,8 @@ func TestReversalRestoresOriginalBalances(t *testing.T) {
 }
 
 func TestReversalFailsWhenBalanceWasAlreadySpent(t *testing.T) {
-	source := newTestWallet("source", domain.WALLET_CHECKING, &balances{free: 100})
-	destination := newTestWallet("destination", domain.WALLET_CHECKING, &balances{})
+	source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, &balances{free: 100})
+	destination := newTestWallet("destination", domain.WALLET_CHECKING_CUSTODY, &balances{})
 
 	origin := testTransaction(domain.TRANSACTION_TRANSFER, 50, source, destination)
 	if err := applyTransaction(origin); err != nil {
