@@ -52,7 +52,7 @@ As entidades contábeis (`LedgerAccount`, `LedgerTransaction`, `LedgerEntry`), d
 | Serviços | `packages/services` | Casos de uso, validações, geração de UUIDs, controle transacional |
 | Domínio | `packages/domain` | Entidades e enums |
 | Persistência | `packages/infra/database/models` | Modelos GORM e conversão `ToDomain`/`FromDomain` |
-| Repositórios | `packages/infra/database/repositories` | `GormRepository[M, E]` genérico: `Create`, `GetByID`, `FindOne`, `FindAll`, `Update`, `Delete`, `Transaction`, `Join` |
+| Repositórios | `packages/infra/database/repositories` | `GormRepository[M, E]` genérico: `Create`, `GetByID`, `FindOne`, `FindAll`, `Update`, `Delete`, `Transaction`, e as opções de consulta `ForUpdate` e `Join` |
 | Migrações | `loader/`, `migrations/`, `atlas.hcl` | Schema gerado pelo Atlas a partir dos modelos GORM |
 
 Decisões de modelagem:

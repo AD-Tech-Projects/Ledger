@@ -73,6 +73,8 @@ The mandatory execution order is: `api (routes) → handlers → services → re
 - Services expose sentinel errors (`ErrInvalidTransaction`, `ErrWalletNotFound`, `ErrTransactionFailed`); handlers map them to HTTP status codes (400, 404, 422, 500).
 - Database transactions are opened in the service with `repository.Transaction(ctx, func(tx *gorm.DB) error { ... })`, and every repository used inside it is rebound with `WithDB(tx)`.
 - Rows that must not change concurrently are locked with the `repositories.ForUpdate[M]()` query option, always in the same (sorted) order.
+- Associations are joined through typed values, never strings. Each model declares the associations that can be joined in a `<Model>Associations` variable next to the model (e.g. `models.WalletAssociations.Asset`, of type `repositories.Association[WalletModel, AssetModel]`), built with `repositories.MustAssociation[M, T]("Field")`. `repositories.Join(models.WalletAssociations.Asset)` only accepts associations of the repository model, so joining an association of another model is a compile error. Chained associations use `repositories.Nested` (e.g. `repositories.Nested(models.TransactionAssociations.SourceWallet, models.WalletAssociations.Owner)`). Only pointer (belongs-to) fields can be declared, since GORM `Joins` does not load has-many associations.
+- `MustAssociation` checks by reflection that the model has the field with type `*T` and panics otherwise. It is the only accepted panic: the declarations run when the `models` package is loaded, so a wrong declaration fails on startup and on `go test ./...`, never during a query.
 - Monetary amounts are `int64` in the smallest unit of the asset — never floats, and amounts of different assets are never combined.
 - Read environment variables only at startup (`main.go`, `database/connection.go`), never inside services.
 
@@ -86,6 +88,7 @@ The mandatory execution order is: `api (routes) → handlers → services → re
 | `atlas.hcl`           | Atlas configuration (`gorm` env, dev database in a temporary container) |
 | `loader/main.go`      | Exports the GORM models schema for Atlas — every new model must be registered here |
 | `migrations/`         | Versioned SQL migrations and `atlas.sum`                        |
+| `seeds/`              | SQL scripts to seed database                                    |
 | `.vscode/launch.json` | **Go: Debug** configuration                                     |
 
 ### Docker

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
 type LedgerTransactionModel struct {
@@ -19,6 +20,14 @@ type LedgerTransactionModel struct {
 
 func (LedgerTransactionModel) TableName() string {
 	return "ledger_transactions"
+}
+
+var LedgerTransactionAssociations = struct {
+	Transaction    repositories.Association[LedgerTransactionModel, TransactionModel]
+	ReversalOrigin repositories.Association[LedgerTransactionModel, LedgerTransactionModel]
+}{
+	Transaction:    repositories.MustAssociation[LedgerTransactionModel, TransactionModel]("Transaction"),
+	ReversalOrigin: repositories.MustAssociation[LedgerTransactionModel, LedgerTransactionModel]("ReversalOrigin"),
 }
 
 func LedgerTransactionToDomain(m *LedgerTransactionModel) *domain.LedgerTransaction {

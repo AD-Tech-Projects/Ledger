@@ -204,12 +204,12 @@ func (s *TransactionService) GetById(ctx context.Context, id string) (*domain.Tr
 	}
 
 	transaction, err := s.transactionRepository.GetByID(ctx, id,
-		repositories.Join[models.TransactionModel]("Asset"),
-		repositories.Join[models.TransactionModel]("SourceWallet"),
-		repositories.Join[models.TransactionModel]("SourceWallet.Owner"),
-		repositories.Join[models.TransactionModel]("DestinationWallet"),
-		repositories.Join[models.TransactionModel]("DestinationWallet.Owner"),
-		repositories.Join[models.TransactionModel]("ReversalOrigin"))
+		repositories.Join(models.TransactionAssociations.Asset),
+		repositories.Join(models.TransactionAssociations.SourceWallet),
+		repositories.Join(repositories.Nested(models.TransactionAssociations.SourceWallet, models.WalletAssociations.Owner)),
+		repositories.Join(models.TransactionAssociations.DestinationWallet),
+		repositories.Join(repositories.Nested(models.TransactionAssociations.DestinationWallet, models.WalletAssociations.Owner)),
+		repositories.Join(models.TransactionAssociations.ReversalOrigin))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction by id: %w", err)
 	}

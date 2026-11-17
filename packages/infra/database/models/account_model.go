@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
 type AccountModel struct {
@@ -25,6 +26,12 @@ type AccountModel struct {
 
 func (AccountModel) TableName() string {
 	return "external_accounts"
+}
+
+var AccountAssociations = struct {
+	Owner repositories.Association[AccountModel, OwnerModel]
+}{
+	Owner: repositories.MustAssociation[AccountModel, OwnerModel]("Owner"),
 }
 
 func AccountToDomain(m *AccountModel) *domain.Account {
