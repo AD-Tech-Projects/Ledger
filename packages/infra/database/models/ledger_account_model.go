@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
 type LedgerAccountModel struct {
@@ -17,6 +18,12 @@ type LedgerAccountModel struct {
 
 func (LedgerAccountModel) TableName() string {
 	return "ledger_accounts"
+}
+
+var LedgerAccountAssociations = struct {
+	Asset repositories.Association[LedgerAccountModel, AssetModel]
+}{
+	Asset: repositories.MustAssociation[LedgerAccountModel, AssetModel]("Asset"),
 }
 
 func LedgerAccountToDomain(m *LedgerAccountModel) *domain.LedgerAccount {

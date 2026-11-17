@@ -63,6 +63,7 @@ Responsibilities:
 
 - Encapsulate all IO and infrastructure concerns and return domain entities to the upper layers.
 - Declare schema rules in the model tags (`not null`, `index`, `uniqueIndex` with `priority`, `check`), so Atlas generates them.
+- Declare the joinable associations of each model in a `<Model>Associations` variable built with `repositories.MustAssociation[M, T]("Field")`, and join them with `repositories.Join(models.<Model>Associations.<Field>)` (`repositories.Nested` for chained associations). Never pass association names as strings.
 - Register new models in `loader/main.go` and generate migrations with `make migrate-create name=<name>`. Never edit an applied migration; create a new one (and run `make migrate-hash` after manual edits).
 
 ## Code Quality (Hard Rules)

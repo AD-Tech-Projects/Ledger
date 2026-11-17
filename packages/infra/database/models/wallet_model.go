@@ -1,6 +1,9 @@
 package models
 
-import "github.com/AD-Tech-Projects/Ledger/packages/domain"
+import (
+	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
+)
 
 type WalletModel struct {
 	BaseModel
@@ -20,6 +23,16 @@ type WalletModel struct {
 
 func (WalletModel) TableName() string {
 	return "wallets"
+}
+
+var WalletAssociations = struct {
+	Owner   repositories.Association[WalletModel, OwnerModel]
+	Asset   repositories.Association[WalletModel, AssetModel]
+	Account repositories.Association[WalletModel, AccountModel]
+}{
+	Owner:   repositories.MustAssociation[WalletModel, OwnerModel]("Owner"),
+	Asset:   repositories.MustAssociation[WalletModel, AssetModel]("Asset"),
+	Account: repositories.MustAssociation[WalletModel, AccountModel]("Account"),
 }
 
 func WalletToDomain(m *WalletModel) *domain.Wallet {

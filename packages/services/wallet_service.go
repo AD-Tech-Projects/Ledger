@@ -59,9 +59,9 @@ func (s *WalletService) GetById(ctx context.Context, id string) (*domain.Wallet,
 	}
 
 	wallet, err := s.walletRepository.GetByID(ctx, id,
-		repositories.Join[models.WalletModel]("Asset"),
-		repositories.Join[models.WalletModel]("Owner"),
-		repositories.Join[models.WalletModel]("Account"),
+		repositories.Join(models.WalletAssociations.Asset),
+		repositories.Join(models.WalletAssociations.Owner),
+		repositories.Join(models.WalletAssociations.Account),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wallet by id: %w", err)

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
 type TransactionModel struct {
@@ -26,6 +27,18 @@ type TransactionModel struct {
 
 func (TransactionModel) TableName() string {
 	return "transactions"
+}
+
+var TransactionAssociations = struct {
+	Asset             repositories.Association[TransactionModel, AssetModel]
+	SourceWallet      repositories.Association[TransactionModel, WalletModel]
+	DestinationWallet repositories.Association[TransactionModel, WalletModel]
+	ReversalOrigin    repositories.Association[TransactionModel, TransactionModel]
+}{
+	Asset:             repositories.MustAssociation[TransactionModel, AssetModel]("Asset"),
+	SourceWallet:      repositories.MustAssociation[TransactionModel, WalletModel]("SourceWallet"),
+	DestinationWallet: repositories.MustAssociation[TransactionModel, WalletModel]("DestinationWallet"),
+	ReversalOrigin:    repositories.MustAssociation[TransactionModel, TransactionModel]("ReversalOrigin"),
 }
 
 func TransactionToDomain(m *TransactionModel) *domain.Transaction {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
+	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
 )
 
 type AssetPriceModel struct {
@@ -18,6 +19,14 @@ type AssetPriceModel struct {
 
 func (AssetPriceModel) TableName() string {
 	return "asset_prices"
+}
+
+var AssetPriceAssociations = struct {
+	Asset      repositories.Association[AssetPriceModel, AssetModel]
+	QuoteAsset repositories.Association[AssetPriceModel, AssetModel]
+}{
+	Asset:      repositories.MustAssociation[AssetPriceModel, AssetModel]("Asset"),
+	QuoteAsset: repositories.MustAssociation[AssetPriceModel, AssetModel]("QuoteAsset"),
 }
 
 func AssetPriceToDomain(m *AssetPriceModel) *domain.AssetPrice {

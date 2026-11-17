@@ -147,9 +147,14 @@ func ForUpdate[M any]() QueryOption[M] {
 	}
 }
 
-// NOTE - joins the specified association, which must be defined in the GORM model, to allow filtering and sorting by its fields
-func Join[M any](association string) QueryOption[M] {
+// NOTE - joins the association (loading it and allowing filtering and sorting by its fields); the zero value of
+// Association is not declared by MustAssociation, so it is rejected as a query error instead of joining nothing
+func Join[M any, T any](association Association[M, T]) QueryOption[M] {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Joins(association)
+		if association.path == "" {
+			db.AddError(errors.New("repositories: undeclared association, use MustAssociation"))
+			return db
+		}
+		return db.Joins(association.path)
 	}
 }
