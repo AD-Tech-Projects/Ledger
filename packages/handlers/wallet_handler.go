@@ -69,20 +69,20 @@ func (h *WalletHandler) Create(c *gin.Context) {
 	}
 
 	existingOrCreatedOwner, err := h.ownerService.FindByUniqueIdentifier(context, owner.CountryCode, owner.Type, owner.UniqueIdentifier)
-	if err != nil {
-		if errors.Is(err, services.ErrOwnerNotFound) {
-			existingOrCreatedOwner, err = h.ownerService.Create(context, &owner)
-			if err != nil {
-				log.Error(err)
-				writeInternalServerError(c, err)
-				return
-			}
+	if errors.Is(err, services.ErrOwnerNotFound) {
+		existingOrCreatedOwner, err = h.ownerService.Create(context, &owner)
+		if err == nil {
 			log.Info("created wallet owner")
-		} else {
-			log.Error(err)
-			writeInternalServerError(c, err)
+		}
+	}
+	if err != nil {
+		log.Error(err)
+		if errors.Is(err, services.ErrInvalidOwner) {
+			writeBadRequest(c, err)
 			return
 		}
+		writeInternalServerError(c, err)
+		return
 	}
 
 	wallet := domain.Wallet{

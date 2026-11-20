@@ -52,7 +52,9 @@
 // Its CountryCode ([CountryCode]) is the jurisdiction of the document. The unique identifier follows
 // the format COUNTRY:TYPE:DOCUMENT (e.g. "BR:INDIVIDUAL:12345678909"), where COUNTRY is the [CountryCode],
 // TYPE is the [OwnerType] and DOCUMENT is the document with everything but letters and digits removed.
-// The whole identifier is converted to uppercase.
+// The whole identifier is converted to uppercase. A new owner requires a known country (not [COUNTRY_UNKNOWN])
+// and a document valid for it: CPF or CNPJ (both numeric or alphanumeric) with their check digits in Brazil,
+// SSN or EIN in the United States, and any document in the European Union.
 //
 // # Wallet
 //
