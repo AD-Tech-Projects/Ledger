@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/google/uuid"
 
 	"github.com/AD-Tech-Projects/Ledger/packages/domain"
 	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/models"
 	"github.com/AD-Tech-Projects/Ledger/packages/infra/database/repositories"
+	"github.com/AD-Tech-Projects/Ledger/packages/services/helpers"
 )
 
 type OwnerService struct {
@@ -28,6 +28,7 @@ func NewOwnerService(
 
 var (
 	ErrOwnerNotFound = errors.New("owner not found")
+	ErrInvalidOwner  = errors.New("invalid owner")
 )
 
 func (s *OwnerService) FindByUniqueIdentifier(
@@ -37,7 +38,7 @@ func (s *OwnerService) FindByUniqueIdentifier(
 	document string,
 ) (*domain.Owner, error) {
 	if document == "" {
-		return nil, fmt.Errorf("unique identifier is required")
+		return nil, &ownerValidationError{message: "owner document is required"}
 	}
 
 	uniqueIdentifier := document
@@ -60,15 +61,18 @@ func (s *OwnerService) FindByUniqueIdentifier(
 
 func (s *OwnerService) Create(ctx context.Context, owner *domain.Owner) (*domain.Owner, error) {
 	if owner == nil {
-		return nil, fmt.Errorf("Owner is required")
-	}
-
-	if owner.ID == "" {
-		owner.ID = uuid.NewString()
+		return nil, &ownerValidationError{message: "owner is required"}
 	}
 
 	if !isOwnerUniqueIdentifierBuilt(owner.UniqueIdentifier) {
 		owner.UniqueIdentifier = buildOwnerUniqueIdentifier(owner.CountryCode, owner.Type, owner.UniqueIdentifier)
+	}
+	if err := validateOwner(owner); err != nil {
+		return nil, err
+	}
+
+	if owner.ID == "" {
+		owner.ID = uuid.NewString()
 	}
 
 	if err := s.ownerRepository.Create(ctx, owner); err != nil {
@@ -85,12 +89,5 @@ func isOwnerUniqueIdentifierBuilt(identifier string) bool {
 
 // Builds the identifier in the format COUNTRY:TYPE:DOCUMENT in uppercase, keeping only letters and digits of the document
 func buildOwnerUniqueIdentifier(countryCode domain.CountryCode, ownerType domain.OwnerType, document string) string {
-	normalizedDocument := strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			return r
-		}
-		return -1
-	}, document)
-
-	return strings.ToUpper(fmt.Sprintf("%s:%s:%s", countryCode, ownerType, normalizedDocument))
+	return strings.ToUpper(fmt.Sprintf("%s:%s:%s", countryCode, ownerType, helpers.NormalizeCpf(document)))
 }

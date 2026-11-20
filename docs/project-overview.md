@@ -107,6 +107,15 @@ A pessoa física (ownerType: `INDIVIDUAL`) ou jurídica (ownerType: `COMPANY`) d
 
 - `CountryCode`: país (jurisdição) do documento do titular, do tipo `CountryCode` compartilhado com `Account`: `US`, `BR`, `EU` ou `COUNTRY_UNKNOWN`, representado por string vazia. No banco é `NOT NULL` com padrão `''` (desconhecido), para que os titulares já existentes continuem válidos.
 - `UniqueIdentifier`: documento único (CPF/CNPJ no Brasil, SSN/EIN nos EUA), com índice único no banco. O formato do identificador é `PAÍS:TIPO:DOCUMENTO` (ex.: `BR:INDIVIDUAL:12345678909`), em que `PAÍS` é o `CountryCode`, `TIPO` é o `OwnerType` e `DOCUMENTO` é o documento normalizado, sem pontuação, espaços ou símbolos (só letras e dígitos). O identificador inteiro é convertido para maiúsculas, então `ab12` e `AB12` geram o mesmo valor. O identificador é montado por `buildOwnerUniqueIdentifier` (em `services/owner_service.go`), usada tanto na criação (`Create`) quanto na consulta (`FindByUniqueIdentifier`, que recebe o país, o tipo e o documento). Um valor que já tem três partes separadas por `:` é considerado pronto e é usado como está. A API recebe o documento com ou sem pontuação, junto com `ownerType` e `countryCode`. É dado pessoal sensível: deve ser normalizado e nunca aparecer em registros públicos de auditoria. Está planejado guardá-lo criptografado, com um HMAC determinístico para verificar a unicidade.
+- **Validação na criação** (`validateOwner`, em `services/owner_validate.go`): `OwnerType` deve ser `INDIVIDUAL` ou `COMPANY`, `CountryCode` deve ser `BR`, `US` ou `EU` (um titular novo não aceita `COUNTRY_UNKNOWN`, porque o formato do documento depende do país), o identificador deve ter o país e o tipo do titular, e o documento deve ser válido para eles:
+
+  | País | `INDIVIDUAL` | `COMPANY` |
+  |---|---|---|
+  | `BR` | CPF: 9 caracteres alfanuméricos e os dois dígitos verificadores | CNPJ: 12 caracteres alfanuméricos (o CNPJ alfanumérico vale desde julho de 2026) e os dois dígitos verificadores |
+  | `US` | SSN: 9 dígitos, sem área `000`, `666` ou `9XX` (ITIN não é aceito), grupo `00` ou série `0000` | EIN: 9 dígitos |
+  | `EU` | Qualquer documento não vazio (a UE não tem um documento comum) | Qualquer documento não vazio |
+
+  No CPF e no CNPJ, as letras ficam antes dos dígitos verificadores, que são sempre numéricos. Cada caractere vale o seu código ASCII menos 48 (os dígitos mantêm o valor, e `A` = 17), então os documentos só numéricos são validados pela mesma regra. Documentos com todos os caracteres iguais (ex.: `111.111.111-11`) são rejeitados. Um titular inválido é rejeitado com `400`. A busca pelo identificador continua aceitando `COUNTRY_UNKNOWN`, para encontrar titulares já cadastrados.
 - O `Owner` não é uma identidade de autenticação. Login e senha serão uma responsabilidade separada.
 
 ### 4.2 `Wallet`: carteira
@@ -135,7 +144,7 @@ A posição financeira de um titular em **um único ativo** dentro da plataforma
   | `WALLET_CRYPTO_CUSTODY` | `CRYPTO_CUSTODY` | Custódia de um criptoativo dentro da plataforma, sem rendimentos | Não aceita |
   | `WALLET_CRYPTO_EXTERNAL` | `CRYPTO_EXTERNAL` | Transferências para uma carteira cripto fora da plataforma | Obrigatória (endereço cripto) |
 
-  Só a regra de conta externa é validada hoje (`walletTypeAccountRules`, em `services/wallet_validate.go`). Uma carteira inválida é rejeitada com `400`. As demais regras por tipo, como rendimentos e bloqueio até o resgate, ainda não existem (ver o checklist). O tipo não muda as contas contábeis usadas: todas as carteiras de um ativo usam as mesmas contas do [plano de contas](./chart-of-accounts.md).
+  A regra de conta externa é validada na criação da carteira (`walletTypeAccountRules`, em `services/wallet_validate.go`), e uma carteira inválida é rejeitada com `400`. Um `YIELD` só é aceito quando a carteira que gerou o rendimento é `SAVINGS` ou `INVESTMENT` (ver a seção 5). O bloqueio de `INVESTMENT` até o resgate e o uso das carteiras `*_EXTERNAL` ainda não existem (ver o checklist). O tipo não muda as contas contábeis usadas: todas as carteiras de um ativo usam as mesmas contas do [plano de contas](./chart-of-accounts.md).
 - `Status`: `ACTIVE` | `INACTIVE`. "Excluir" uma carteira é desativá-la, o que preserva o histórico.
 - `Version`: reservado para optimistic locking (ainda não aplicado).
 - `AccountID`: conta externa da carteira, usada como origem de depósitos e destino de saques e pagamentos. É obrigatória, opcional ou proibida conforme o `Type` (tabela acima). Uma carteira aponta para no máximo uma conta externa, e uma conta externa pode servir várias carteiras do mesmo titular.
@@ -150,6 +159,7 @@ A conta financeira do titular **fora da plataforma**. É a origem e o destino da
 - Campos bancários: `Currency`, `InstitutionName`, `BranchCode` (agência), `AccountNumber`, `RoutingCode` (código de compensação do país), `IBAN`, `BIC/SWIFT`.
 - Campos cripto: `CryptoNetwork`, `CryptoAddress`, `CryptoMemo` (memo/tag exigido por algumas redes).
 - `CountryCode`: país da conta, do tipo `CountryCode` compartilhado com `Owner` (`US`, `BR`, `EU` ou `COUNTRY_UNKNOWN`, representado por string vazia, ex.: contas cripto).
+- **Validação** (`validateAccount`, em `services/account_validate.go`): titular com UUID válido, país conhecido (aceita `COUNTRY_UNKNOWN`) e campos conforme o `Kind`. Uma conta `BANK` exige `Currency` e `AccountNumber` ou `IBAN`, e uma conta `CRYPTO` exige `CryptoNetwork` e `CryptoAddress`. Nenhum dos tipos aceita os campos do outro. Ainda não é chamada, porque não há criação de contas externas.
 
 ### 4.4 `AccountIdentifier`: chave de pagamento
 
@@ -170,7 +180,7 @@ Generaliza a antiga lista fixa de moedas (`USD`, `EUR`, `BRL`). Carteiras, trans
 
 Histórico de preços de um ativo (`Asset`) expresso em outro (`QuoteAsset`), por exemplo 1 BTC = R$ 350.000,00 em uma data. Serve para calcular o **valor de mercado** das carteiras sem alterar seus saldos.
 
-- `Price` é o valor de **uma unidade** do ativo na **menor unidade do `QuoteAsset`**. Em USD (2 casas), 1 BTC = US$ 95.000,00 é `9500000`.
+- `Price` é o valor de **uma unidade** do ativo na **menor unidade do `QuoteAsset`**. Em USD (2 casas), 1 BTC = US$ 95.000,00 é `9500000`. Deve ser positivo (`validateAssetPrice`, em `services/asset_price_validate.go`, que também exige os dois ativos e `RecordedAt`; ainda não é chamada, porque não há cadastro de cotações pela API).
 - O seed grava uma cotação por ativo em USD (a moeda fiduciária mais utilizada para cotações), inclusive `USD` cotado em si mesmo (`100`). `POINTS` é derivado de R$ 0,50 × cotação do BRL (US$ 0,18), ou seja `9`. Em cotações pequenas o inteiro em centavos perde precisão (BRL e POINTS).
 - **Valorização não é rendimento.** Se 1 BTC passa de R$ 300 mil para R$ 350 mil, a quantidade do titular continua igual e não há transação. Um rendimento (`YIELD`) aumenta a **quantidade** de ativos e gera lançamentos.
 
@@ -219,7 +229,7 @@ Uma conta do **plano de contas**. Define como cada movimentação é classificad
   | `LEDGER_ACCOUNT_EXPENSE` | `EXPENSE` | Despesa: o que a plataforma gasta (ex.: rendimentos pagos e emissão de pontos) | `DEBIT` | `5` |
 
   A classe é o primeiro dígito da base do código da conta (ver [Faixas de código](./chart-of-accounts.md#faixas-de-código)).
-- `NormalBalanceDirection`: o lado que **aumenta** o saldo da conta. `ASSET` e `EXPENSE` aumentam por `DEBIT`; `LIABILITY`, `EQUITY` e `REVENUE` aumentam por `CREDIT`. O campo serve para **interpretar** o saldo, não para restringir lançamentos: uma conta de ativo também recebe créditos. Ele deve ser compatível com `Type`. O motivo de cada tipo crescer por um lado está na [equação contábil](#61-partidas-dobradas).
+- `NormalBalanceDirection`: o lado que **aumenta** o saldo da conta. `ASSET` e `EXPENSE` aumentam por `DEBIT`; `LIABILITY`, `EQUITY` e `REVENUE` aumentam por `CREDIT`. O campo serve para **interpretar** o saldo, não para restringir lançamentos: uma conta de ativo também recebe créditos. Ele deve ser compatível com `Type`, o que é verificado por `validateLedgerAccount` (em `services/ledger_validate.go`, junto com status, código, nome e ativo). O motivo de cada tipo crescer por um lado está na [equação contábil](#61-partidas-dobradas).
 - `Code` (único) e `Name`. Por exemplo, `2001 - Saldo disponível dos usuários`.
 - `AssetID`: cada conta contábil pertence a um único ativo. Contas com a mesma finalidade são duplicadas por ativo, e, como `Code` é único, cada cópia precisa de um código próprio (ex.: `2001-BRL`, `2001-USD`).
 - `Status`: `ACTIVE` (aceita lançamentos) | `INACTIVE`. Não muda quando operações são contabilizadas.
@@ -255,6 +265,7 @@ Uma linha **imutável** de débito ou crédito no livro-razão. É aqui que os *
 - `Amount` é sempre positivo. O lado vem de `Direction` (`DEBIT` | `CREDIT`), numa coluna única em vez de colunas separadas de débito e crédito.
 - `AssetID` deve ser o mesmo ativo da conta contábil.
 - `Sequence` dá uma ordem determinística aos lançamentos de uma mesma `LedgerTransaction`, a partir de 1. Serve para ordenação, auditoria, replay e detecção de lançamentos ausentes ou duplicados. **Não** é a ordem cronológica global do ledger.
+- `validateLedgerEntries` (em `services/ledger_validate.go`) verifica os lançamentos de uma `LedgerTransaction`, cada um com a conta contábil carregada: todos da mesma contabilização, `Amount` positivo, `Direction` válida, conta `ACTIVE` e do mesmo ativo do lançamento, e `Sequence` de 1 até o número de lançamentos, sem lacunas nem repetições (em qualquer ordem). O equilíbrio Σ débitos = Σ créditos por ativo ainda não é verificado.
 - Está planejado acrescentar uma referência à carteira afetada (`WalletID`). Assim, uma única conta contábil guarda o saldo agregado de todos os usuários, e o lançamento identifica a carteira individual.
 
 ## 5. Conceitos implementados
@@ -264,9 +275,11 @@ Uma linha **imutável** de débito ou crédito no livro-razão. É aqui que os *
 - **Seed de ativos e cotações** (`make seed`): BRL, USD, EUR, BTC, ETH, USDT e POINTS com uma cotação em USD cada, idempotente e separado das migrações de schema.
 - **Seed do plano de contas inicial** (`make seed`): 47 `LedgerAccount` (uma conta base por ativo, código `BASE-ATIVO`, todas `ACTIVE`), idempotente por `code` e conforme [Plano de Contas Inicial](./chart-of-accounts.md).
 - **Cada carteira guarda um único ativo** e é ligada a um titular. O titular é criado automaticamente quando não existe, e seu documento é único.
+- **Validação do titular**: tipo, país e documento (CPF/CNPJ numéricos ou alfanuméricos, com dígitos verificadores; SSN/EIN), com `400` para um titular inválido (seção 4.1).
+- **Validações prontas para as próximas funcionalidades**: conta externa por `Kind`, cotação positiva, compatibilidade entre `NormalBalanceDirection` e `Type`, e lançamentos (conta ativa, mesmo ativo e `Sequence` sem lacunas). Ainda não são chamadas, porque esses fluxos não existem.
 - **Seis tipos de carteira** (`WalletType`), com a regra de conta externa de cada tipo validada na criação: obrigatória em `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL`, proibida em `SAVINGS` e `CRYPTO_CUSTODY`, opcional em `CHECKING_CUSTODY` e `INVESTMENT`.
 - **Novas carteiras começam com saldos zerados.** "Excluir" é desativar (`INACTIVE`), e o soft delete preserva o histórico.
-- **Validações de transação**: tipo suportado, valor positivo, carteiras aceitas pelo tipo, carteiras distintas, ativas e do mesmo ativo, e saldo suficiente. As carteiras podem ser de tipos e titulares diferentes.
+- **Validações de transação**: tipo suportado, valor positivo, carteiras aceitas pelo tipo, carteiras distintas, ativas e do mesmo ativo, e saldo suficiente. As carteiras podem ser de tipos e titulares diferentes, mas um `YIELD` precisa ser gerado por uma carteira `SAVINGS` ou `INVESTMENT`: a origem, quando informada (o rendimento pode então ser creditado em uma carteira de outro tipo), ou o destino.
 - **Transferência em duas etapas via retenção**: origem livre → origem retida → destino retido → destino livre. Isso impede que uma transferência fique pela metade.
 - **Carteiras e efeito de cada tipo de transação** (`transactionWalletRules` e `applyTransaction`):
 
@@ -427,6 +440,8 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - `REVERSAL` desfaz o efeito nos saldos, mas ainda não gera lançamentos contábeis invertidos.
 - Carteiras `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL` não podem ser criadas pela API, porque ela não recebe `AccountID`.
 - A unicidade `ATIVO:TITULAR:TIPO` entre as carteiras ativas ainda não é garantida: o mesmo titular pode ter duas carteiras `ACTIVE` do mesmo ativo e tipo.
+- As validações de conta externa, cotação, conta contábil e lançamentos existem, mas ainda não são chamadas. Os seeds de ativos, cotações e plano de contas gravam direto no banco, sem passar por elas.
+- Titulares cadastrados antes da validação podem ter documentos inválidos ou `COUNTRY_UNKNOWN`, e continuam sendo encontrados pela busca.
 
 ## 8. Checklist de funcionalidades e conceitos
 
@@ -443,9 +458,16 @@ TigerBeetle, Formance, Modern Treasury (ledger), PostgreSQL (isolamento e lockin
 - [x] Entidades de conta externa e chaves de pagamento modeladas (`Account`, `AccountIdentifier`)
 - [x] Seed de ativos suportados
 - [x] Plano de contas inicial cadastrado (seed de `LedgerAccount`, ver [`chart-of-accounts.md`](./chart-of-accounts.md))
-- [ ] Validar a compatibilidade entre `NormalBalanceDirection` e `LedgerAccount.Type`
+- [x] Validar a compatibilidade entre `NormalBalanceDirection` e `LedgerAccount.Type` (`validateLedgerAccount`, a ser chamada no cadastro de contas contábeis)
+- [x] Validar o titular na criação: `OwnerType` (`INDIVIDUAL` | `COMPANY`), `CountryCode` suportado (`BR`, `US` ou `EU`) e documento não vazio
+- [x] Validar o formato do documento conforme o país e o tipo do titular (dígitos verificadores de CPF/CNPJ, numéricos ou alfanuméricos, e formato de SSN/EIN)
+- [x] Validar os campos da conta externa conforme o `Kind` (`validateAccount`, a ser chamada no CRUD de contas externas)
+- [x] Validar que o `Price` de uma cotação é positivo (`validateAssetPrice`, a ser chamada no cadastro de cotações)
+- [x] Validar que o ativo de um `LedgerEntry` é o mesmo da sua `LedgerAccount` (`validateLedgerEntries`, a ser chamada ao gerar os lançamentos)
+- [x] Aceitar lançamentos só em contas contábeis `ACTIVE` (`validateLedgerEntries`)
+- [x] Validar que a `Sequence` dos lançamentos de uma `LedgerTransaction` começa em 1 e não tem lacunas (`validateLedgerEntries`)
 - [x] Regra de conta externa por `WalletType` (obrigatória, opcional ou proibida)
-- [ ] Aceitar `YIELD` só em carteiras que rendem (rejeitar em `CHECKING_CUSTODY` e `CRYPTO_CUSTODY`)
+- [x] Aceitar `YIELD` só quando a carteira que gerou o rendimento é `SAVINGS` ou `INVESTMENT` (a origem, quando informada, ou o destino)
 - [ ] Travar o saldo de `INVESTMENT` até o resgate ou vencimento do investimento
 - [ ] Usar `CHECKING_EXTERNAL` e `CRYPTO_EXTERNAL` nos pagamentos e transferências para fora da plataforma
 

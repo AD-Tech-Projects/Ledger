@@ -41,7 +41,7 @@ func TestApplyTransactionCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
+			source := newTestWallet("source", domain.WALLET_SAVINGS, test.source)
 			destination := newTestWallet("destination", domain.WALLET_INVESTMENT, test.destination)
 			transaction := testTransaction(test.transactionType, 50, source, destination)
 
@@ -80,7 +80,7 @@ func TestApplyTransactionInsufficientBalanceKeepsWalletsUnchanged(t *testing.T) 
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
+			source := newTestWallet("source", domain.WALLET_SAVINGS, test.source)
 			destination := newTestWallet("destination", domain.WALLET_CHECKING_CUSTODY, test.destination)
 			transaction := testTransaction(test.transactionType, 150, source, destination)
 
@@ -125,7 +125,7 @@ func TestReversalRestoresOriginalBalances(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := newTestWallet("source", domain.WALLET_CHECKING_CUSTODY, test.source)
+			source := newTestWallet("source", domain.WALLET_SAVINGS, test.source)
 			destination := newTestWallet("destination", domain.WALLET_INVESTMENT, test.destination)
 
 			origin := testTransaction(test.transactionType, 50, source, destination)
